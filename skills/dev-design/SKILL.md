@@ -70,11 +70,11 @@ argument-hint: "[客户/运营反馈内容或问题描述]"
 
 ### Step 3: 原型设计
 
-使用 Skill tool 调用 `gstack-design-shotgun`：
+使用 Skill tool 调用 `gstack-design-shotgun`（gstack 外部 Skill）：
 - 生成多个设计方案变体
 - 展示对比板让用户选择
 
-用户选定方案后，使用 Skill tool 调用 `gstack-design-html`：
+用户选定方案后，使用 Skill tool 调用 `gstack-design-html`（gstack 外部 Skill）：
 - 基于选定方案生成 HTML/CSS 原型
 - 输出可浏览的 HTML 文件
 

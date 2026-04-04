@@ -48,7 +48,7 @@ reproduce-bug 会：
 
 ### Step 2: 根因分析
 
-使用 Skill tool 调用 `gstack-investigate`。
+使用 Skill tool 调用 `gstack-investigate`（gstack 外部 Skill）。
 
 gstack-investigate 使用四阶段方法论：
 1. **调查** - 收集证据（日志、代码、数据）
@@ -77,10 +77,12 @@ Iron Law: 不确认根因不动手修复。
 
 ### Step 3: 创建工作区 + 修复
 
+从根因分析中提取一个简短的 bug 名称（英文，kebab-case），
+例如："用户登录时 token 过期未处理" → `token-expiry-fix`
+
 ```bash
-# 基于 bug 描述创建分支
 REPO_ROOT=$(git rev-parse --show-toplevel)
-FIX_NAME="{bug-short-name}"
+FIX_NAME="{从 bug 描述中提取的 kebab-case 名称}"
 WORKTREE_PATH="$REPO_ROOT/.worktrees/$FIX_NAME"
 git worktree add "$WORKTREE_PATH" -b "fix/$FIX_NAME"
 ```
