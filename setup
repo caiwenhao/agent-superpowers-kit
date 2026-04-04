@@ -1,0 +1,23 @@
+#!/bin/bash
+# setup - 注册 agent-superpowers-kit skill 到 Claude Code
+set -e
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+SKILLS_DIR="$HOME/.claude/skills"
+
+echo "注册 agent-superpowers-kit skills..."
+
+for skill_dir in "$SCRIPT_DIR"/skills/*/; do
+  if [ -f "$skill_dir/SKILL.md" ]; then
+    skill_name="$(basename "$skill_dir")"
+    target="$SKILLS_DIR/$skill_name"
+    mkdir -p "$target"
+    ln -sf "$skill_dir/SKILL.md" "$target/SKILL.md"
+    echo "  linked: $skill_name"
+  fi
+done
+
+echo "done. 共注册 $(ls -d "$SCRIPT_DIR"/skills/*/SKILL.md 2>/dev/null | wc -l | tr -d ' ') 个 skill。"
+echo ""
+echo "使用方式: 在任意项目目录中输入 /dev 开始完整开发流程"
+echo "卸载: rm -rf ~/.claude/skills/dev ~/.claude/skills/dev-*"
