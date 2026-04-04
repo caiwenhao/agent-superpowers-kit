@@ -5,6 +5,12 @@ description: "Use after implementation to run multi-layer quality verification. 
 
 # Phase 5: Verify -- "质量关"
 
+## 通用规则
+
+1. **始终用中文与用户交流。** 所有状态报告、GATE 提示、审查结果均使用中文。
+2. **工作区检查。** 确认在正确的 feature branch 上，避免审查错误的代码。
+3. **Review 多轮循环。** `ce:review` interactive 模式执行"审查->修复->再审查"循环，直到零 P0/P1 或 3 轮上限。每个 additive layer 同样循环。
+
 ## Overview
 
 Phase 5 is the quality gate. `ce:review` **detects** diff content and **auto-selects** 6-20+ persona reviewers. Additional verification layers are **auto-stacked** based on what changed.
@@ -62,24 +68,30 @@ Position in workflow: Phase 4 (code) -> **Phase 5** -> Phase 6 (delivery)
    - correctness (always)
    - testing (always)
    - maintainability (always)
+   - project-standards (always)
+   - agent-native (always)
+   - learnings (always)
    - security -- new endpoint in routes.rb accepts user input
    - kieran-rails -- controller changed in app/controllers/
    - adversarial -- diff is 120 lines touching auth
    ```
 
-2. **REVIEW (Core): `ce:review mode:autofix plan:<plan-path>`**
+2. **REVIEW (Core): `/ce:review plan:<plan-path>`** (interactive mode, 完整独立审查, 多轮循环)
+   - **Note**: Phase 4 已运行 `ce:review mode:autofix`（快速 safe_auto 修复）。Phase 5 运行 interactive 模式做完整审查，覆盖 autofix 未处理的 `gated_auto` 和 `manual` 类问题。
+   - **无计划文件时**（trivial fix、emergency hotfix、bug fix 直接进入）：省略 `plan:<path>` 参数，跳过 R-ID 需求追溯验证，仅执行代码质量审查。宣告："无计划文件 -- 跳过 R-ID 需求追溯，仅审查代码质量。"
    - Confidence filter: >= 0.60 (P0 >= 0.50)
-   - safe_auto fixes applied automatically
-   - R-ID requirements trace verification
+   - safe_auto 自动修复，`gated_auto` / `manual` 交用户决策
+   - 有计划文件时：R-ID 需求追溯验证
    - Residual issues -> todo system
+   - **循环**: 审查 -> 修复 -> 再审查，直到零 P0/P1 或 3 轮上限或收敛
 
-   **GATE: PASS verdict required.**
+   **GATE: PASS 裁决（零 P0/P1）。**
 
-3. **If NEEDS_WORK**: address findings (verify before adopting), re-run until PASS
+3. **If 未通过**: 修复发现（先验证再采纳），循环直到通过
 
-4. **Auto-stack additive layers** based on detected signals. Announce:
-   - "Diff touches auth + frontend -- stacking CSO audit and browser tests."
-   - "No additional layers needed for this diff."
+4. **Auto-stack additive layers** based on detected signals. Announce (中文):
+   - "Diff 涉及 auth + 前端 -- 叠加 CSO 安全审计和浏览器测试。"
+   - "该 diff 不需要额外审查层。"
 
 5. **Run `todo-resolve`** to batch-process remaining todos
 

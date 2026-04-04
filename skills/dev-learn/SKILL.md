@@ -5,6 +5,12 @@ description: "Use after solving a significant problem, shipping a feature, or co
 
 # Phase 7: Learn -- "学到什么"
 
+## 通用规则
+
+1. **始终用中文与用户交流。** 所有状态报告、路由宣告均使用中文。
+2. **工作区检查。** 知识文档写入 `docs/solutions/` 前确认在正确分支上。
+3. **Review 多轮循环。** `ce:compound` Phase 3 的可选领域审查执行修复循环。
+
 ## Overview
 
 Phase 7 is the compound interest phase. It **detects** what just happened and **routes** to the right knowledge capture mechanism. Knowledge captured here is **automatically injected** into future Phase 3 planning and Phase 5 review via learnings-researcher.
@@ -59,7 +65,7 @@ Completed work
   +-- [Sprint/week end] ----------> Route B: /gstack-retro
   |   "retro", "weekly review"       -> Retro report + trend snapshot
   |
-  +-- [Reusable method found] ----> Route C: writing-skills
+  +-- [Reusable method found] ----> Route C: superpowers:writing-skills
   |   "always do this",              -> ~/.claude/skills/<name>/SKILL.md
   |   "encode as a skill"
   |
@@ -71,10 +77,10 @@ Completed work
 
 ## Workflow
 
-1. **Detect scene** and announce:
-   - "Bug fix with root cause analysis -- documenting the solution."
-   - "Sprint ended -- running retrospective with trend analysis."
-   - "Reusable pattern detected -- creating a skill with TDD."
+1. **Detect scene** and announce (中文):
+   - "Bug 修复伴随根因分析 -- 记录解决方案。"
+   - "迭代结束 -- 运行回顾分析趋势。"
+   - "发现可复用模式 -- 用 TDD 创建 skill。"
 
 2. **Execute detected route**
 
@@ -82,7 +88,7 @@ Completed work
    - Parallel sub-agents: Context Analyzer + Solution Extractor + Related Docs Finder
    - Auto-detects track: Bug (Problem->Root Cause->Solution->Prevention) vs Knowledge (Context->Guidance->Why->Examples)
    - Auto-detects overlap with existing docs (5 dimensions, High/Moderate/Low)
-   - REVIEW (Optional): domain-specific review auto-triggered by problem type:
+   - REVIEW (Optional): domain-specific review auto-triggered by problem type (最多 3 轮):
      - `performance_issue` -> `performance-oracle`
      - `security_issue` -> `security-sentinel`
      - `database_issue` -> `data-integrity-guardian`
@@ -93,7 +99,7 @@ Completed work
    - Compares vs last retro for trends
    - Per-contributor praise and growth areas
 
-   **Route C: `writing-skills`** (skill creation)
+   **Route C: `superpowers:writing-skills`** (skill creation)
    - RED: pressure scenario without skill, document failures
    - GREEN: write minimal skill that fixes those failures
    - REFACTOR: close loopholes, re-test
@@ -134,3 +140,7 @@ All gstack skills <-- preamble auto-searches learnings.jsonl ---------+
 | `ce:compound` | Manual, active | Full document | Explicit invocation after solving a problem |
 
 Knowledge is not just recorded -- it is automatically injected into future planning and review. That is what makes it compound.
+
+## Iron Law
+
+> Knowledge captured now compounds into every future planning and review cycle. Skipping documentation is borrowing from your future self.

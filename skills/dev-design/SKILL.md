@@ -5,6 +5,12 @@ description: "Use when a requirements doc exists and the work involves UI, visua
 
 # Phase 2: Design -- "长什么样"
 
+## 通用规则
+
+1. **始终用中文与用户交流。** 所有状态报告、GATE 提示、路由宣告均使用中文。
+2. **工作区检查优先。** 创建设计文档前确认在 worktree/feature branch 中。
+3. **Review 多轮循环。** Spec Review Loop 执行"审查->修复->再审查"循环，最多 3 轮。
+
 ## Overview
 
 Phase 2 establishes the visual language and interaction patterns. It **detects** project design maturity (no system / has system / has mockups) and **routes** through the right pipeline stage. The anchor artifact is `DESIGN.md`.
@@ -61,10 +67,10 @@ Requirements Doc (from Phase 1)
 
 ## Workflow
 
-1. **Detect scene** using the signals above. Announce:
-   - "No design system found -- creating DESIGN.md first."
-   - "Design system exists, exploring visual direction for this feature."
-   - "Visual direction already approved -- deferring design review to planning phase."
+1. **Detect scene** using the signals above. Announce (中文):
+   - "未找到设计体系 -- 先创建 DESIGN.md。"
+   - "设计体系已存在，为该功能探索视觉方向。"
+   - "视觉方向已确认 -- 将设计审查推迟到规划阶段。"
 
 2. **Execute the detected route**
 
@@ -72,12 +78,13 @@ Requirements Doc (from Phase 1)
    **Route B**: Run `/gstack-design-shotgun` with `DESIGN.md` as constraint
    **Route C**: Note for Phase 3 to run `/gstack-plan-design-review`
 
-3. **REVIEW: Spec Review Loop** (auto-triggered by `design-consultation`)
-   - Independent sub-agent adversarial review (5 dimensions: Completeness / Consistency / Clarity / Scope / Feasibility)
-   - Score 1-10, fix-and-re-review up to 3 rounds
-   - Unresolved issues written to "Reviewer Concerns" section
+3. **REVIEW: Spec Review Loop 多轮循环** (内嵌在 `design-consultation`)
+   - 独立子 Agent 对抗审查 (5 维度: Completeness / Consistency / Clarity / Scope / Feasibility)
+   - 评分 1-10，有问题则修复后重新审查
+   - **循环**: 审查 -> 修复 -> 再审查，最多 3 轮或连续两轮发现相同则收敛
+   - 未解决的问题写入 "Reviewer Concerns" 部分
 
-   **GATE: `DESIGN.md` reviewed + `approved.json` exists + user confirmed direction.**
+   **GATE: `DESIGN.md` 通过审查（零 P0/P1）+ `approved.json` 存在 + 用户确认方向。**
 
 4. **(Optional)** Run `/gstack-design-html` to generate high-fidelity prototype
 
@@ -91,11 +98,13 @@ Requirements Doc (from Phase 1)
 | **Output** | `DESIGN.md` (persistent) + `approved.json` (per-feature) |
 | **Next** | `/dev:plan` (Phase 3) |
 
-## Key Artifact
+## Iron Law
+
+> No implementation begins until the visual direction is approved. `DESIGN.md` is the design source of truth -- deviations are defects.
 
 `DESIGN.md` is the design anchor -- all downstream skills consume or enforce it:
-- `design-shotgun` constrains variant generation
-- `plan-design-review` calibrates ratings against it
-- `design-html` extracts tokens from it
-- `design-review` scores deviations as higher severity
-- `frontend-design` detects and follows it automatically in `ce:work`
+- `/gstack-design-shotgun` constrains variant generation
+- `/gstack-plan-design-review` calibrates ratings against it
+- `/gstack-design-html` extracts tokens from it
+- `/gstack-design-review` scores deviations as higher severity
+- `frontend-design` detects and follows it automatically in `/ce:work`

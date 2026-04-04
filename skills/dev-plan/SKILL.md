@@ -5,6 +5,12 @@ description: "Use when a requirements doc exists and it is time to create an imp
 
 # Phase 3: Plan -- "怎么做"
 
+## 通用规则
+
+1. **始终用中文与用户交流。** 所有状态报告、GATE 提示、路由宣告均使用中文。
+2. **工作区检查优先。** 创建计划文档前确认在 worktree/feature branch 中。
+3. **Review 多轮循环。** document-review 和 plan-eng-review 均执行多轮循环，直到零 P0/P1 或 3 轮上限。
+
 ## Overview
 
 Phase 3 transforms requirements into an executable plan. `ce:plan` is the sole creator (decisions, not code). The skill **detects** plan scope and **auto-selects** the right review depth. Plans produce Implementation Units, Requirements Trace, and Test Scenarios consumed by `ce:work` in Phase 4.
@@ -64,32 +70,34 @@ Plan created by ce:plan
 
 ## Workflow
 
-1. **Detect scene** using Signal 1. Announce:
-   - "Found existing plan, resuming at review step."
-   - "No existing plan -- creating from requirements doc."
+1. **Detect scene** using Signal 1. Announce (中文):
+   - "找到已有计划，从审查步骤恢复。"
+   - "无已有计划 -- 从需求文档创建。"
 
 2. **Run `/ce:plan`** with requirements doc path
    - Parallel research: repo-research, learnings, best-practices, framework-docs
-   - Output: `docs/plans/YYYY-MM-DD-NNN-<type>-<name>-plan.md`
+   - Output: `docs/plans/YYYY-MM-DD-NNN-<type>-<name>-plan.md`（frontmatter 必须含 `status: active`）
    - Scope auto-classified: Lightweight / Standard / Deep
 
-3. **REVIEW (Layer 1): `document-review`** (auto-triggered by `ce:plan` Phase 5)
-   - Multi-persona plan document review: coherence / feasibility / scope-guardian
+3. **REVIEW (Layer 1): `document-review` 多轮循环** (内嵌在 `ce:plan` Phase 5)
+   - 多人格审查: coherence / feasibility / scope-guardian
+   - **循环**: 审查 -> 修复 -> 再审查，直到零 P0/P1 或 3 轮上限
 
-   **GATE: Plan file exists and passes document-review.**
+   **GATE: 计划文件存在且通过 document-review（零 P0/P1）。**
 
-4. **Detect review depth** from plan's Implementation Unit count (Signal 3). Announce:
-   - "Plan has 12 units -- running full autoplan review pipeline."
-   - "Plan has 5 units with UI -- running eng + design review."
-   - "Plan has 2 units -- running eng review only."
+4. **Detect review depth** from plan's Implementation Unit count (Signal 3). Announce (中文):
+   - "计划有 12 个单元 -- 运行完整 autoplan 审查流水线。"
+   - "计划有 5 个单元含 UI -- 运行工程 + 设计审查。"
+   - "计划有 2 个单元 -- 仅运行工程审查。"
 
-5. **REVIEW (Layer 2): Multi-perspective plan review** (auto-selected)
+5. **REVIEW (Layer 2): 多视角计划审查 多轮循环** (auto-selected)
    - Large: `/gstack-autoplan` (CEO -> Design -> Eng -> DX, serial)
    - Standard: `/gstack-plan-eng-review` (required gate) + `/gstack-plan-design-review` (if UI)
    - Small: `/gstack-plan-eng-review` only
    - Developer-facing: + `/gstack-plan-devex-review`
+   - **循环**: 每个审查技能内部执行多轮修复，直到零 P0/P1 或达到上限
 
-   **GATE: GSTACK REVIEW REPORT in plan file. `plan-eng-review` CLEARED.**
+   **GATE: GSTACK REVIEW REPORT 写入计划文件。`plan-eng-review` CLEARED（零 P0/P1）。**
 
 6. **Next**: `/dev:code` (Phase 4)
 
@@ -98,7 +106,7 @@ Plan created by ce:plan
 | | Value |
 |---|---|
 | **Input** | Phase 1 requirements doc path, Phase 2 `DESIGN.md` (if exists) |
-| **Output** | `docs/plans/YYYY-MM-DD-NNN-<type>-<name>-plan.md` with R-Trace + Impl Units |
+| **Output** | `docs/plans/YYYY-MM-DD-NNN-<type>-<name>-plan.md`（frontmatter 包含 `status: active`）with R-Trace + Impl Units |
 | **Next** | `/dev:code` (Phase 4) |
 
 ## Iron Law

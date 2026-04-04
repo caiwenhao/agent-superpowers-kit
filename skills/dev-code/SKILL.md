@@ -5,6 +5,12 @@ description: "Use when a reviewed plan exists and it is time to write code. Rout
 
 # Phase 4: Code -- "写代码"
 
+## 通用规则
+
+1. **始终用中文与用户交流。** 所有状态报告、GATE 提示均使用中文。
+2. **工作区检查优先。** 开始写代码前确认在 worktree/feature branch 中，否则先创建工作区。
+3. **Review 多轮循环。** 内嵌的 `ce:review mode:autofix` 执行多轮循环（最多 2 轮 bounded re-review）。
+
 ## Overview
 
 Phase 4 executes the plan. The single entry point is `ce:work`, which **detects** plan complexity and **auto-selects** the best execution strategy. Auxiliary skills are **auto-triggered** by context signals -- not by the user.
@@ -50,21 +56,22 @@ Position in workflow: Phase 3 (planning) -> **Phase 4** -> Phase 5 (verification
 
 ## Workflow
 
-1. **`ce:work` detects scene** and announces:
-   - "Plan has 5 units with 2 independent -- using parallel sub-agents for units 1-2, then serial for 3-5."
-   - "Bare prompt, 2 files affected -- proceeding inline."
-   - "Plan unit 3 is tagged test-first -- will use TDD for that unit."
+1. **`ce:work` detects scene** and announces (中文):
+   - "计划有 5 个单元，其中 2 个独立 -- 对 Unit 1-2 使用并行 Agent，Unit 3-5 使用串行。"
+   - "裸提示，影响 2 个文件 -- 内联执行。"
+   - "计划 Unit 3 标记为 test-first -- 该单元使用 TDD。"
 
 2. **`ce:work` executes** with auto-selected strategy
    - Per task: Implement -> Test Discovery -> System-Wide Test Check -> Incremental commit
    - Every 2-3 units: Simplify pass (cross-unit dedup)
 
-3. **REVIEW: `ce:review mode:autofix`** (auto-triggered by `ce:work` Phase 3)
-   - Tier 2 (default): 20+ persona parallel review, safe_auto fixes, R-ID trace
-   - Tier 1 (only when ALL four: purely additive + single concern + pattern-following + plan-faithful)
-   - Passes `plan:<path>` for requirements verification
+3. **REVIEW: `ce:review mode:autofix` 多轮循环** (内嵌在 `ce:work` Phase 3)
+   - Tier 2 (default): 20+ persona 并行审查, safe_auto 修复, R-ID 追溯
+   - Tier 1 (仅当全部满足: 纯新增 + 单一关注点 + 模式跟随 + 忠于计划)
+   - 传入 `plan:<path>` 用于需求追溯验证
+   - **循环**: 修复 -> 再审查，最多 2 轮 bounded re-review（Phase 4 是快速 autofix 通道，比 Phase 5 的 3 轮上限更紧凑）
 
-   **GATE: All tasks complete. Tests pass. Review applied. Residual todos recorded.**
+   **GATE: 所有任务完成。测试通过。审查已应用。残余 todo 已记录。**
 
 4. **Next**: `/dev:verify` (Phase 5)
 

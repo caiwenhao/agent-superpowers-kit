@@ -5,6 +5,12 @@ description: "Use when starting any new work: a feature idea, vague request, pro
 
 # Phase 1: Discover -- "做什么"
 
+## 通用规则
+
+1. **始终用中文与用户交流。** 所有状态报告、GATE 提示、路由宣告均使用中文。
+2. **工作区检查优先。** 创建文档前确认在 worktree/feature branch 中，否则先创建工作区。
+3. **Review 多轮循环。** `document-review` 执行"审查->修复->再审查"循环，直到零 P0/P1 或达到 3 轮上限。
+
 ## Overview
 
 Phase 1 is the mandatory entry point for all new work. It **detects** user intent clarity, **routes** to the best discovery skill, and **converges** all paths onto `ce:brainstorm` as the single exit, producing a requirements document with traceable R-IDs (R1, R2, R3...).
@@ -47,6 +53,7 @@ User Input
   |   "what should I improve"
   |
   +-- [Has direction,  -----> Route B: /gstack-office-hours -> /ce:brainstorm
+
   |    uncertain value]
   |   "is this worth building"
   |   "validate my idea"
@@ -64,11 +71,11 @@ All routes converge to `/ce:brainstorm` as the single exit.
 
 ## Workflow
 
-1. **Detect scene** using the signals above. Announce the detected route:
-   - "Input is exploratory with no clear direction -- starting with ideation."
-   - "Input has a direction but needs validation -- running office hours."
-   - "Input describes a multi-faceted feature -- starting standard brainstorm."
-   - "Input is clear and bounded -- running lightweight brainstorm."
+1. **Detect scene** using the signals above. Announce the detected route (中文):
+   - "输入是探索性的，没有明确方向 -- 先进行创意发散。"
+   - "输入有方向但需要验证价值 -- 运行 Office Hours。"
+   - "输入描述了一个多面向的功能 -- 启动标准头脑风暴。"
+   - "输入清晰且范围小 -- 运行轻量头脑风暴。"
 
 2. **Execute the detected route**
 
@@ -76,15 +83,16 @@ All routes converge to `/ce:brainstorm` as the single exit.
    **Route B**: Run `/gstack-office-hours` -> validated direction -> feed into `/ce:brainstorm`
    **Route C/D**: Run `/ce:brainstorm` directly (scope auto-assessed by ce:brainstorm itself)
 
-3. **REVIEW: `document-review`** (auto-triggered by `ce:brainstorm` Phase 3.5)
-   - Multi-persona review: coherence / feasibility / product-lens / design-lens / security-lens / scope-guardian
-   - `auto` fixes applied, `present` findings surfaced to user
+3. **REVIEW: `document-review` 多轮循环** (内嵌在 `ce:brainstorm` Phase 3.5)
+   - 多人格并行审查: coherence / feasibility / product-lens / design-lens / security-lens / scope-guardian
+   - `auto` 修复自动应用，`present` 发现交用户判断
+   - **循环**: 审查 -> 修复 -> 再审查，直到零 P0/P1 或 3 轮上限或连续两轮发现相同
 
-   **GATE: Requirements doc must exist, document-review complete, user approved.**
+   **GATE: 需求文档必须存在，document-review 通过（零 P0/P1），用户批准。**
 
-4. **Detect next phase** by scanning the approved requirements:
-   - Requirements mention UI elements (views, pages, components, styles, layouts, visual) -> `/dev:design`
-   - Pure backend / API / infrastructure / CLI -> `/dev:plan`
+4. **Detect next phase** by scanning the approved requirements (中文宣告):
+   - 需求涉及 UI (views, pages, components, styles, layouts, visual) -> `/dev:design`
+   - 纯后端 / API / 基础设施 / CLI -> `/dev:plan`
 
 ## Inputs / Outputs
 
