@@ -1,5 +1,5 @@
 ---
-name: dev-design
+name: dev:design
 description: "Use when a requirements doc exists and the work involves UI, visual components, or front-end changes. Detects project design maturity and routes through the right design pipeline. Skip entirely for pure backend work."
 ---
 

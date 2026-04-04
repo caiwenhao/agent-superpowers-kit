@@ -1,5 +1,5 @@
 ---
-name: dev-ship
+name: dev:ship
 description: "Use when Phase 5 has passed and code is ready to deliver. Detects project type and upstream quality to auto-select lightweight (CE) or full (gstack) delivery path. Both end with land-and-deploy."
 ---
 

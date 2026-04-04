@@ -1,5 +1,5 @@
 ---
-name: dev-discover
+name: dev:discover
 description: "Use when starting any new work: a feature idea, vague request, product question, or 'I want to build X'. Detects intent clarity and routes to the right discovery skill, always producing a requirements doc with R-IDs before planning begins."
 ---
 

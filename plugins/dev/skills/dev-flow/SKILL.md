@@ -1,5 +1,5 @@
 ---
-name: dev-flow
+name: dev:flow
 description: "Use when starting any development task, or when unsure which dev: phase to begin with. Detects the current project state, identifies which phase the work is in, and orchestrates the full discover->design->plan->code->verify->ship->learn pipeline automatically. The single entry point for the entire AI Coding workflow."
 ---
 

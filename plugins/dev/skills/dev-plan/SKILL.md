@@ -1,5 +1,5 @@
 ---
-name: dev-plan
+name: dev:plan
 description: "Use when a requirements doc exists and it is time to create an implementation plan. Detects scope to select review depth: autoplan for large features, plan-eng-review for ordinary work. Always uses ce:plan as the sole plan creator."
 ---
 
