@@ -65,13 +65,20 @@ dev-plan 会：
 - 创建 git worktree 隔离工作区
 - 调用 ce-plan 生成实施计划，基于原型分析拆分实现单元
 
+用 AskUserQuestion：
+> 计划已生成。要进行深度审查吗？
+> - A) 审查计划 (gstack-autoplan)
+> - B) 跳过，直接编码
+
+如果 A，调用 Skill tool 执行 `dev-review-plan`。
+
 ### Step 3: 编码 + 像素级审查循环
 
 调用 Skill tool 执行 `dev-code`（ce-work + ce-review 循环）。
 
 **在每轮 code 完成后，额外执行像素级对比：**
 
-使用 Agent tool 启动 `compound-engineering:design:figma-design-sync` (Superpower)：
+使用 Agent tool 启动 `compound-engineering:design:design-implementation-reviewer` (Superpower)：
 - 对比原型截图 vs 实现截图
 - 检测像素级差异（间距、颜色、字号、对齐）
 - 输出差异报告

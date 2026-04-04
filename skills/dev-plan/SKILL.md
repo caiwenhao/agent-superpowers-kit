@@ -3,7 +3,7 @@ name: dev-plan
 description: |
   为明确的需求生成实施计划，并创建 git worktree 隔离工作区。
   内部使用 ce-plan 生成计划。
-  Use when: "做个计划", "plan this", "开始开发这个功能",
+  Use when: "做个计划", "plan this",
   "create a plan", "制定方案", "规划一下"
 argument-hint: "[需求描述或需求文档路径]"
 ---

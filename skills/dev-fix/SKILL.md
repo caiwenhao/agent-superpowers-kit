@@ -24,9 +24,9 @@ argument-hint: "[Bug 描述、报错信息或 issue 链接]"
 
 ### Step 1: Bug 复现
 
-#### 1a. 系统化复现 (CE reproduce-bug)
+#### 1a. 系统化复现 (CE Skill)
 
-使用 Skill tool 调用 `compound-engineering:reproduce-bug`，传入 Bug 描述。
+使用 Skill tool 调用 `compound-engineering:reproduce-bug`（CE Skill，非 Superpower），传入 Bug 描述。
 
 reproduce-bug 会：
 - 分析 Bug 描述，提取复现步骤

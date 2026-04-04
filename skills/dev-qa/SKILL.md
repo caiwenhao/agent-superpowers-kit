@@ -54,12 +54,15 @@ argument-hint: "[测试 URL 或服务启动说明]"
 - UI 回归检查
 - 发现问题自动修复
 
-#### 3b. 接口验证 (Superpowers)
+#### 3b. 接口验证
 
-使用 Agent tool 启动 `compound-engineering:workflow:bug-reproduction-validator` (Superpower)：
-- 验证 API 接口的请求/响应
-- 检查错误处理
+通过 Bash 工具使用 curl 或项目的测试框架验证 API 接口：
+- 验证核心 API 端点的请求/响应
+- 检查错误处理和状态码
 - 验证边界条件
+
+如果项目有接口测试套件（如 Go test、pytest），直接运行对应的测试命令。
+如果没有，根据计划文件中涉及的 API 改动，使用 curl 手动验证关键端点。
 
 #### 3c. 日志分析
 

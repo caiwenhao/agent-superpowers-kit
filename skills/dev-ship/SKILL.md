@@ -46,8 +46,8 @@ ce-compound 会记录这次开发过程中学到的经验：
 # Step 3a: 获取当前状态（merge 前，变量还可用）
 CURRENT_BRANCH=$(git branch --show-current)
 PR_NUM=$(gh pr view --json number -q .number 2>/dev/null)
-MAIN_WORKTREE=$(git worktree list | head -1 | awk '{print $1}')
-CURRENT_DIR=$(pwd)
+MAIN_WORKTREE=$(realpath "$(git worktree list | head -1 | awk '{print $1}')")
+CURRENT_DIR=$(realpath "$(pwd)")
 
 echo "分支: $CURRENT_BRANCH"
 echo "PR: #$PR_NUM"
