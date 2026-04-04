@@ -1,93 +1,101 @@
 ---
-name: dev-design
-description: |
-  自主设计开发模式 (0→1)。从客户/运营反馈出发，识别问题、分析痛点、
-  判断价值，完成需求设计和原型设计，然后进入开发流程。
-  Use when: "这个问题需要设计", "客户反馈", "运营反馈", "从零设计",
-  "0到1", "需要先设计再做", "design from scratch", "需要先出原型"
-argument-hint: "[客户/运营反馈内容或问题描述]"
+name: dev:design
+description: "Use when a requirements doc exists and the work involves UI, visual components, or front-end changes. Detects project design maturity and routes through the right design pipeline. Skip entirely for pure backend work."
 ---
 
-# /dev-design - 自主设计开发 (0→1)
+# Phase 2: Design -- "长什么样"
 
-从模糊的客户/运营反馈，到问题识别、需求设计、原型生成、开发交付的完整链路。
+## Overview
 
-## 输入
+Phase 2 establishes the visual language and interaction patterns. It **detects** project design maturity (no system / has system / has mockups) and **routes** through the right pipeline stage. The anchor artifact is `DESIGN.md`.
 
-<feedback> #$ARGUMENTS </feedback>
+Position in workflow: Phase 1 (discover) -> **Phase 2** -> Phase 3 (planning)
 
-如果上面为空，问用户：
-"请描述收到的客户/运营反馈，或你观察到的问题。"
+## When to Use
 
-## 流程
+- Requirements doc exists and the work involves UI, visual components, or front-end changes
 
-### Step 1: 问题识别 + 痛点分析
+**Skip when:** Pure backend, API-only, infrastructure, or CLI work with no visual surface.
 
-分析反馈内容，提炼核心问题：
+## Scene Detection
 
-使用 Agent tool 启动 `compound-engineering:workflow:spec-flow-analyzer` (Superpower)：
-- 分析反馈中隐含的用户流程
-- 识别流程断裂点和痛点
-- 发现未覆盖的边界情况
+Check these signals in order:
 
-输出结构化的问题分析：
-```markdown
-## 问题分析
+**Signal 1: Does `DESIGN.md` exist at repo root?**
+- No -> this project has no design system yet -> Route A: Full pipeline
+- Yes -> check Signal 2
 
-### 原始反馈
-{反馈内容}
+**Signal 2: Does `approved.json` exist for this feature?**
+- Search `~/.gstack/projects/*/designs/` for sessions matching the current feature/branch
+- No approved direction -> Route B: Visual exploration
+- Yes, but plan lacks design decisions -> Route C: Plan-level review only
+- Yes, and plan has design decisions -> SKIP Phase 2
 
-### 核心问题
-{提炼出的实际问题}
+**Signal 3: Is there an existing frontend codebase?**
+- Scan for design signals: CSS variables, component libraries, Tailwind config, font imports
+- 4+ signals -> `frontend-design` will auto-detect in Phase 4 (no action needed in Phase 2)
+- 1-3 signals -> partial system, `design-shotgun` should constrain to existing patterns
+- 0 signals -> greenfield, full creative freedom
 
-### 影响范围
-- 影响的用户群体: {谁}
-- 影响的功能模块: {哪些}
-- 发生频率: {高/中/低}
+## Routing
 
-### 痛点等级
-- {痛点 1}: 严重程度 {高/中/低}
-- {痛点 2}: ...
+```
+Requirements Doc (from Phase 1)
+  |
+  +-- No DESIGN.md ---------> Route A: design-consultation -> design-shotgun
+  |   (no design system)       Create the system, then explore visuals
+  |
+  +-- Has DESIGN.md, -------> Route B: design-shotgun
+  |   no approved.json         Explore visuals within existing system
+  |   (system exists,
+  |    no visual direction)
+  |
+  +-- Has DESIGN.md, -------> Route C: plan-design-review (deferred to Phase 3)
+  |   has approved.json,       Plan exists but needs design dimension audit
+  |   plan lacks design
+  |
+  +-- Has DESIGN.md, -------> SKIP Phase 2 -> /dev:plan
+      has approved.json,
+      plan has design decisions
 ```
 
-用 AskUserQuestion 确认：
-> 以上是问题分析，核心问题是 {X}。
-> - A) 分析正确，继续设计
-> - B) 需要调整（说明）
-> - C) 这个不值得做，放弃
+## Workflow
 
-如果 C，结束流程。
+1. **Detect scene** using the signals above. Announce:
+   - "No design system found -- creating DESIGN.md first."
+   - "Design system exists, exploring visual direction for this feature."
+   - "Visual direction already approved -- deferring design review to planning phase."
 
-### Step 2: 价值判断 + 需求设计
+2. **Execute the detected route**
 
-调用 Skill tool 执行 `dev-eval`（内含 ce-brainstorm）。
+   **Route A**: Run `/gstack-design-consultation` -> output `DESIGN.md` -> then `/gstack-design-shotgun`
+   **Route B**: Run `/gstack-design-shotgun` with `DESIGN.md` as constraint
+   **Route C**: Note for Phase 3 to run `/gstack-plan-design-review`
 
-传入 Step 1 的问题分析作为输入，通过结构化对话：
-- 评估解决这个问题的价值
-- 探索多种解决方案
-- 明确需求边界
-- 输出结构化需求文档
+3. **REVIEW: Spec Review Loop** (auto-triggered by `design-consultation`)
+   - Independent sub-agent adversarial review (5 dimensions: Completeness / Consistency / Clarity / Scope / Feasibility)
+   - Score 1-10, fix-and-re-review up to 3 rounds
+   - Unresolved issues written to "Reviewer Concerns" section
 
-### Step 3: 原型设计
+   **GATE: `DESIGN.md` reviewed + `approved.json` exists + user confirmed direction.**
 
-使用 Skill tool 调用 `gstack-design-shotgun`（gstack 外部 Skill）：
-- 生成多个设计方案变体
-- 展示对比板让用户选择
+4. **(Optional)** Run `/gstack-design-html` to generate high-fidelity prototype
 
-用户选定方案后，使用 Skill tool 调用 `gstack-design-html`（gstack 外部 Skill）：
-- 基于选定方案生成 HTML/CSS 原型
-- 输出可浏览的 HTML 文件
+5. **Next**: `/dev:plan` (Phase 3)
 
-用 AskUserQuestion 确认原型：
-> 原型已生成，请浏览确认。
-> - A) 原型 OK，开始开发
-> - B) 需要调整（说明）
-> - C) 重新设计
+## Inputs / Outputs
 
-### Step 4: 输出与衔接
+| | Value |
+|---|---|
+| **Input** | Phase 1 requirements doc, existing codebase |
+| **Output** | `DESIGN.md` (persistent) + `approved.json` (per-feature) |
+| **Next** | `/dev:plan` (Phase 3) |
 
-原型确认后，告诉用户：
+## Key Artifact
 
-> 设计阶段完成，已输出需求文档和 HTML 原型。下一步：
-> - `/dev-plan` - 基于需求文档 + 原型生成实施计划
-> - `/dev` - 自动编排后续全流程
+`DESIGN.md` is the design anchor -- all downstream skills consume or enforce it:
+- `design-shotgun` constrains variant generation
+- `plan-design-review` calibrates ratings against it
+- `design-html` extracts tokens from it
+- `design-review` scores deviations as higher severity
+- `frontend-design` detects and follows it automatically in `ce:work`

@@ -1,69 +1,106 @@
 ---
-name: dev-plan
-description: |
-  为明确的需求生成实施计划，并创建 git worktree 隔离工作区。
-  内部使用 ce-plan 生成计划。
-  Use when: "做个计划", "plan this",
-  "create a plan", "制定方案", "规划一下"
-argument-hint: "[需求描述或需求文档路径]"
+name: dev:plan
+description: "Use when a requirements doc exists and it is time to create an implementation plan. Detects scope to select review depth: autoplan for large features, plan-eng-review for ordinary work. Always uses ce:plan as the sole plan creator."
 ---
 
-# /dev-plan - 生成计划 + 创建工作区
+# Phase 3: Plan -- "怎么做"
 
-基于明确需求生成实施计划，并创建隔离的 git worktree 工作区。
+## Overview
 
-## 输入
+Phase 3 transforms requirements into an executable plan. `ce:plan` is the sole creator (decisions, not code). The skill **detects** plan scope and **auto-selects** the right review depth. Plans produce Implementation Units, Requirements Trace, and Test Scenarios consumed by `ce:work` in Phase 4.
 
-<requirement> #$ARGUMENTS </requirement>
+Position in workflow: Phase 2 (design) -> **Phase 3** -> Phase 4 (implementation)
 
-如果上面为空，检查当前对话中是否有 dev-eval 产出的需求文档。如果没有，
-问用户："请描述要做的功能，或提供需求文档路径。"
+## When to Use
 
-## 流程
+- Requirements doc exists (`docs/brainstorms/*-requirements.md`)
+- Work is non-trivial (more than a one-file fix)
 
-### Step 1: 确定 feature 名称
+**Skip when:** Plan already exists and has been reviewed for this work item.
 
-从需求中提取一个简短的 feature 名称（英文，kebab-case），用于分支名和目录名。
-例如："给列表页加搜索" → `list-search`
+## Scene Detection
 
-用 AskUserQuestion 确认：
-> Feature 名称: `{name}`，分支: `feat/{name}`，确认？
+**Signal 1: Does a plan already exist?**
+- Search `docs/plans/` for plans matching the topic (within 30 days)
+- If found with `status: active` and REVIEW REPORT present -> SKIP, go to `/dev:code`
+- If found with `status: active` but no REVIEW REPORT -> resume at review step
+- If found with `status: completed` -> SKIP or create new plan (ask user)
 
-### Step 2: 创建 git worktree
+**Signal 2: Does `DESIGN.md` exist? (from Phase 2)**
+- Yes -> `ce:plan` will reference design tokens; `plan-design-review` should run
+- No -> skip design review dimension
 
-```bash
-# 获取项目根目录
-REPO_ROOT=$(git rev-parse --show-toplevel)
-FEATURE_NAME="{name}"
-WORKTREE_PATH="$REPO_ROOT/.worktrees/$FEATURE_NAME"
+**Signal 3: Plan scope (auto-detected by `ce:plan` after creating the plan)**
+- Count Implementation Units produced:
+  - 1-2 units -> Small scope
+  - 3-9 units -> Standard scope
+  - 10+ units -> Large scope
+- Check if units touch developer-facing surfaces (API, CLI, SDK, docs):
+  - Yes -> add DX review
 
-# 创建 worktree + feature 分支
-git worktree add "$WORKTREE_PATH" -b "feat/$FEATURE_NAME"
-echo "工作区已创建: $WORKTREE_PATH"
-echo "分支: feat/$FEATURE_NAME"
+## Routing
+
+### Plan Creation (always the same)
+
+`/ce:plan` -- parallel research sub-agents, R-ID trace, Implementation Units, Test Scenarios.
+
+### Review Depth (auto-selected after plan creation)
+
+```
+Plan created by ce:plan
+  |
+  +-- 10+ Implementation Units ---------> autoplan (CEO + Design + Eng + DX)
+  |   (large/cross-cutting)
+  |
+  +-- 3-9 Units ------------------------> plan-eng-review (required)
+  |   (standard)                           + plan-design-review (if DESIGN.md exists)
+  |
+  +-- 1-2 Units ------------------------> plan-eng-review only
+  |   (small)
+  |
+  +-- Units touch API/CLI/SDK/docs -----> + plan-devex-review (additive)
+      (developer-facing)
 ```
 
-切换工作目录到新的 worktree。
+## Workflow
 
-### Step 3: 调用 ce-plan
+1. **Detect scene** using Signal 1. Announce:
+   - "Found existing plan, resuming at review step."
+   - "No existing plan -- creating from requirements doc."
 
-使用 Skill tool 调用 `compound-engineering:ce-plan`，传入需求描述。
+2. **Run `/ce:plan`** with requirements doc path
+   - Parallel research: repo-research, learnings, best-practices, framework-docs
+   - Output: `docs/plans/YYYY-MM-DD-NNN-<type>-<name>-plan.md`
+   - Scope auto-classified: Lightweight / Standard / Deep
 
-ce-plan 会：
-- 探索代码库，理解现有模式
-- 生成结构化实施计划
-- 拆分实现单元
-- 识别风险和依赖
+3. **REVIEW (Layer 1): `document-review`** (auto-triggered by `ce:plan` Phase 5)
+   - Multi-persona plan document review: coherence / feasibility / scope-guardian
 
-计划文档会保存在工作区中。
+   **GATE: Plan file exists and passes document-review.**
 
-### Step 4: 输出与衔接
+4. **Detect review depth** from plan's Implementation Unit count (Signal 3). Announce:
+   - "Plan has 12 units -- running full autoplan review pipeline."
+   - "Plan has 5 units with UI -- running eng + design review."
+   - "Plan has 2 units -- running eng review only."
 
-计划生成完毕后，告诉用户：
+5. **REVIEW (Layer 2): Multi-perspective plan review** (auto-selected)
+   - Large: `/gstack-autoplan` (CEO -> Design -> Eng -> DX, serial)
+   - Standard: `/gstack-plan-eng-review` (required gate) + `/gstack-plan-design-review` (if UI)
+   - Small: `/gstack-plan-eng-review` only
+   - Developer-facing: + `/gstack-plan-devex-review`
 
-> 计划已生成，工作区: `{worktree_path}`
-> 分支: `feat/{name}`
->
-> 下一步：
-> - `/dev-review-plan` - 对计划进行多轮深度审查
-> - `/dev-code` - 跳过审查，直接开始编码（小需求可选）
+   **GATE: GSTACK REVIEW REPORT in plan file. `plan-eng-review` CLEARED.**
+
+6. **Next**: `/dev:code` (Phase 4)
+
+## Inputs / Outputs
+
+| | Value |
+|---|---|
+| **Input** | Phase 1 requirements doc path, Phase 2 `DESIGN.md` (if exists) |
+| **Output** | `docs/plans/YYYY-MM-DD-NNN-<type>-<name>-plan.md` with R-Trace + Impl Units |
+| **Next** | `/dev:code` (Phase 4) |
+
+## Iron Law
+
+> Plans resolve decisions, not code. The implementer starts confidently without the plan writing code for them.

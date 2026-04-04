@@ -1,111 +1,117 @@
 ---
-name: dev-ship
-description: |
-  完成交付：知识沉淀 + squash merge 到 main + 关闭 issue + 删除 worktree。
-  Use when: "合并", "ship it", "merge", "发布", "完成",
-  "知识沉淀", "收尾", "merge to main"
-argument-hint: "[无参数]"
+name: dev:ship
+description: "Use when Phase 5 has passed and code is ready to deliver. Detects project type and upstream quality to auto-select lightweight (CE) or full (gstack) delivery path. Both end with land-and-deploy."
 ---
 
-# /dev-ship - 知识沉淀 + merge + 清理
+# Phase 6: Ship -- "上线"
 
-完成开发的最后一步：沉淀知识、合并代码、清理工作区。
+## Overview
 
-## 流程
+Phase 6 delivers verified code to production. It **detects** project type and upstream quality context to **auto-select** the right delivery path. Two paths share a single endpoint (`land-and-deploy`).
 
-### Step 1: 知识沉淀 (ce-compound)
+Position in workflow: Phase 5 (verify) -> **Phase 6** -> Phase 7 (knowledge)
 
-使用 Skill tool 调用 `compound-engineering:ce-compound`。
+## When to Use
 
-ce-compound 会记录这次开发过程中学到的经验：
-- 解决了什么问题
-- 用了什么方案
-- 踩了什么坑
-- 有什么可复用的模式
+- Phase 5 verification passed
+- Code is ready to ship
 
-### Step 2: 确认合并
+**Never skip Phase 6.**
 
-用 AskUserQuestion 确认：
+## Scene Detection
 
-> 即将执行以下不可逆操作：
-> 1. squash merge 当前 PR 到 main
-> 2. 删除远程分支
-> 3. 删除本地 worktree
->
-> - A) 确认，执行合并和清理
-> - B) 取消，我还没准备好
+**Signal 1: Does the project use versioning?**
+- `VERSION` file exists OR `package.json` has `version` field -> versioned project
+- No version file -> unversioned project
 
-如果 B，停止并告诉用户稍后用 `/dev-ship` 继续。
+**Signal 2: What upstream quality was already applied?**
+- `ce:review` ran in Phase 4/5 (check `.context/compound-engineering/ce-review/` for recent run) -> upstream quality confirmed
+- No ce:review evidence -> needs ship's built-in review
 
-### Step 3: squash merge + 关闭 issue + 清理
+**Signal 3: PR feedback pending?**
+- Run `gh pr view --json reviewDecision,comments` on current branch
+- Unresolved review threads exist -> prepend `resolve-pr-feedback`
 
-将 merge、issue 关闭、worktree 清理合并在一个连续流程中执行，
-避免变量跨 bash 调用丢失。
+**Signal 4: UI changes in diff?**
+- Scan diff for `views/`, `components/`, `*.tsx`, `*.css`, `*.html` -> add `feature-video`
 
-```bash
-# Step 3a: 获取当前状态（merge 前，变量还可用）
-CURRENT_BRANCH=$(git branch --show-current)
-PR_NUM=$(gh pr view --json number -q .number 2>/dev/null)
-MAIN_WORKTREE=$(realpath "$(git worktree list | head -1 | awk '{print $1}')")
-CURRENT_DIR=$(realpath "$(pwd)")
+## Routing
 
-echo "分支: $CURRENT_BRANCH"
-echo "PR: #$PR_NUM"
-echo "主工作区: $MAIN_WORKTREE"
-echo "当前目录: $CURRENT_DIR"
-
-# Step 3b: 提取 issue 编号（merge 前提取，因为 merge 后 PR body 不变但分支会被删）
-ISSUE_NUM=""
-if [ -n "$PR_NUM" ]; then
-  ISSUE_NUM=$(gh pr view "$PR_NUM" --json body -q '.body' | grep -oE 'Closes #[0-9]+' | grep -oE '[0-9]+' | head -1)
-fi
-echo "关联 Issue: ${ISSUE_NUM:-无}"
-
-# Step 3c: squash merge
-if [ -n "$PR_NUM" ]; then
-  gh pr merge "$PR_NUM" --squash --delete-branch
-  echo "PR #$PR_NUM 已合并"
-else
-  echo "未找到 PR，跳过 merge"
-fi
-
-# Step 3d: 关闭 issue（如果未被自动关闭）
-if [ -n "$ISSUE_NUM" ]; then
-  ISSUE_STATE=$(gh issue view "$ISSUE_NUM" --json state -q .state 2>/dev/null)
-  if [ "$ISSUE_STATE" != "CLOSED" ]; then
-    gh issue close "$ISSUE_NUM"
-    echo "Issue #$ISSUE_NUM 已关闭"
-  else
-    echo "Issue #$ISSUE_NUM 已自动关闭"
-  fi
-fi
-
-# Step 3e: 切回主工作区
-cd "$MAIN_WORKTREE"
-git checkout main
-git pull origin main
-
-# Step 3f: 删除 worktree（只在当前目录不是主工作区时）
-if [ "$CURRENT_DIR" != "$MAIN_WORKTREE" ] && [ -d "$CURRENT_DIR" ]; then
-  git worktree remove "$CURRENT_DIR" --force 2>/dev/null && \
-    echo "工作区 $CURRENT_DIR 已删除" || \
-    echo "工作区清理失败，请手动执行: git worktree remove $CURRENT_DIR --force"
-fi
-
-echo "完成"
+```
+Verified code (from Phase 5)
+  |
+  +-- [Unversioned + upstream quality confirmed] -> Path A: CE Lightweight
+  |   Daily feature, already passed ce:review
+  |
+  +-- [Versioned project] -----------------------> Path B: gstack Full
+  |   Needs VERSION bump + CHANGELOG
+  |
+  +-- [No upstream review evidence] --------------> Path B: gstack Full
+  |   Needs ship's built-in review gates
+  |
+  +-- [Emergency hotfix] -------------------------> Path A: CE Lightweight
+      (user explicitly says "hotfix" or "urgent")
 ```
 
-### Step 4: 完成总结
+### Pre-delivery (auto-detected)
 
-输出完成总结：
+```
+  +-- [PR has unresolved threads] -> resolve-pr-feedback first
+  +-- [Diff has UI files] ---------> feature-video in parallel
+```
 
-> ## 开发完成
->
-> - **功能**: {功能名称}
-> - **分支**: {branch} -> main (squash merged)
-> - **Issue**: #{N} (closed)
-> - **PR**: #{M} (merged)
-> - **知识沉淀**: 已记录
-> - **工作区**: 已清理
->
-> 整个开发流程结束。
+## Workflow
+
+1. **Detect scene** and announce:
+   - "Versioned project with VERSION file -- using full ship workflow with CHANGELOG."
+   - "Upstream ce:review confirmed -- using lightweight commit+PR path."
+   - "PR has 3 unresolved review threads -- resolving first."
+
+2. **Pre-delivery** (if detected):
+   - Run `/ce:resolve-pr-feedback` for pending PR comments
+
+3. **Execute detected path**
+
+   **Path A: CE Lightweight**
+   ```
+   /ce:git-commit-push-pr
+     - Auto-detects conventions from repo history
+     - Logical commit splitting (file-level)
+     - Adaptive PR description
+     [+ feature-video in parallel if UI detected]
+   /gstack-land-and-deploy
+     - CI wait -> merge-readiness report -> merge -> deploy -> canary
+   ```
+
+   **Path B: gstack Full Release**
+   ```
+   /gstack-ship
+     - Merge base branch -> parallel tests -> coverage audit (60%/80%)
+     - Plan completion audit + scope drift detection
+     - REVIEW: pre-landing code review (auto, Step 3.5)
+     - REVIEW: adversarial review -- Claude + Codex (auto, Step 3.8)
+     - Version bump + CHANGELOG generation
+     - Bisectable commits (dependency-ordered)
+     [+ feature-video in parallel if UI detected]
+   /gstack-document-release
+     - Cross-references all docs against diff
+     - Auto-updates factual changes, asks on narrative changes
+   /gstack-land-and-deploy
+     - CI wait -> merge-readiness report -> merge -> deploy -> canary
+   ```
+
+4. **`land-and-deploy` auto-detects** deployment platform and canary depth:
+   - Platform: from `fly.toml` / `vercel.json` / `render.yaml` / `Procfile` / GitHub Actions
+   - Canary depth by diff type: docs->skip, config->smoke, backend->console, frontend->full
+
+   **GATE: Merge-readiness report shown to user. User confirms before merge.**
+
+5. **Next**: `/dev:learn` (Phase 7)
+
+## Inputs / Outputs
+
+| | Value |
+|---|---|
+| **Input** | Verified code diff (Phase 5 PASS) |
+| **Output** | Merged PR, deployed to production, canary verified |
+| **Next** | `/dev:learn` (Phase 7) |

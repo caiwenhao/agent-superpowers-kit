@@ -1,70 +1,83 @@
 ---
-name: dev-code
-description: |
-  按计划执行编码，并进行代码审查循环。使用 ce-work 执行开发，
-  ce-review 审查代码，循环直到所有问题解决。
-  Use when: "开始写代码", "start coding", "执行计划",
-  "implement this", "动手开发", "开始实现"
-argument-hint: "[计划文件路径，默认自动检测]"
+name: dev:code
+description: "Use when a reviewed plan exists and it is time to write code. Routes through ce:work, which detects plan complexity and auto-selects execution strategy (inline, serial agents, parallel agents, or swarm)."
 ---
 
-# /dev-code - 写代码 + 审查循环
+# Phase 4: Code -- "写代码"
 
-按计划执行编码，编码完成后自动进行代码审查，发现问题则修复并重新审查，循环直到通过。
+## Overview
 
-## 输入
+Phase 4 executes the plan. The single entry point is `ce:work`, which **detects** plan complexity and **auto-selects** the best execution strategy. Auxiliary skills are **auto-triggered** by context signals -- not by the user.
 
-<plan_path> #$ARGUMENTS </plan_path>
+Position in workflow: Phase 3 (planning) -> **Phase 4** -> Phase 5 (verification)
 
-如果上面为空，自动查找当前目录下的计划文件。
+## When to Use
 
-## 流程
+- A reviewed plan exists (`docs/plans/*.md`)
+- Or: a bare prompt describes small, clear work
 
-### Step 1: 执行编码 (ce-work)
+**Never skip Phase 4.**
 
-使用 Skill tool 调用 `compound-engineering:ce-work`，传入计划文件路径。
+## Scene Detection (performed by `ce:work` internally)
 
-ce-work 会：
-- 读取计划文件，理解任务列表
-- 按实现单元逐个执行
-- 遵循现有代码模式
-- 确保测试覆盖
+**Signal 1: Is there a plan file?**
+- No plan file, no bare prompt -> STOP, return to `/dev:plan`
+- No plan file, has bare prompt -> `ce:work` assesses complexity:
+  - Trivial (1-2 files) -> proceed inline
+  - Large (10+ files, cross-cutting) -> recommend `/dev:discover` + `/dev:plan` first
 
-### Step 2: 代码审查 (ce-review)
+**Signal 2: Plan complexity (auto-detected from Implementation Units)**
 
-编码完成后，使用 Skill tool 调用 `compound-engineering:ce-review`。
+| Detected Signal | Auto-selected Strategy |
+|---|---|
+| 1-2 files, no behavioral change | Direct inline |
+| < 10 files, clear scope | Serial task list |
+| 3+ units with sequential dependencies | Serial sub-agents |
+| 3+ units with independent units (no shared files) | Parallel sub-agents |
+| 10+ units needing inter-agent coordination | Swarm (Agent Teams) |
 
-ce-review 会：
-- 启动多个 reviewer persona (根据 diff 内容动态选择)
-- 并行审查代码变更
-- 合并去重审查结果
-- 输出结构化审查报告
+**Signal 3: Execution posture (auto-detected from plan content)**
 
-### Step 3: 审查循环
+| Detected Signal | Auto-triggered Skill |
+|---|---|
+| Implementation Unit has `Execution note: test-first` | `test-driven-development` (RED-GREEN-REFACTOR) |
+| Implementation Unit has `Execution note: characterization-first` | Characterization tests before changes |
+| Implementation Unit has `Execution note: external-delegate` | Codex delegation mode |
+| Bug encountered during implementation | `systematic-debugging` / `investigate` |
+| Multiple independent test failures | `dispatching-parallel-agents` |
+| Files in `views/`, `components/`, `*.tsx`, `*.css` touched | `frontend-design` (auto-detects DESIGN.md) |
+| Plan references a GitHub Issue | `reproduce-bug` |
 
-如果 ce-review 输出的发现中有 severity >= warning 的问题，进入修复循环。
-info 级别的发现记录但不阻塞。
+## Workflow
 
-1. 列出所有需要修复的问题和建议
-2. 再次调用 `compound-engineering:ce-work`，传入修复任务
-3. 修复后再次调用 `compound-engineering:ce-review`
-4. 重复直到审查通过
+1. **`ce:work` detects scene** and announces:
+   - "Plan has 5 units with 2 independent -- using parallel sub-agents for units 1-2, then serial for 3-5."
+   - "Bare prompt, 2 files affected -- proceeding inline."
+   - "Plan unit 3 is tagged test-first -- will use TDD for that unit."
 
-**最多循环 5 轮**。5 轮后如果仍有问题，用 AskUserQuestion：
+2. **`ce:work` executes** with auto-selected strategy
+   - Per task: Implement -> Test Discovery -> System-Wide Test Check -> Incremental commit
+   - Every 2-3 units: Simplify pass (cross-unit dedup)
 
-> 已完成 5 轮代码审查循环，仍有 {N} 个未解决的问题：
-> {问题列表}
->
-> - A) 继续修复（再开 5 轮）
-> - B) 忽略剩余问题，继续下一步
-> - C) 中断，稍后手动处理
+3. **REVIEW: `ce:review mode:autofix`** (auto-triggered by `ce:work` Phase 3)
+   - Tier 2 (default): 20+ persona parallel review, safe_auto fixes, R-ID trace
+   - Tier 1 (only when ALL four: purely additive + single concern + pattern-following + plan-faithful)
+   - Passes `plan:<path>` for requirements verification
 
-### Step 4: 输出与衔接
+   **GATE: All tasks complete. Tests pass. Review applied. Residual todos recorded.**
 
-所有审查通过后，告诉用户：
+4. **Next**: `/dev:verify` (Phase 5)
 
-> 代码审查通过。共经过 {N} 轮 code-review 循环。
->
-> 下一步：
-> - `/dev-qa` - 启动服务进行全面测试
-> - `/dev-accept` - 跳过自动测试，直接进入人工验收（小改动可选）
+## Inputs / Outputs
+
+| | Value |
+|---|---|
+| **Input** | Plan file path from Phase 3 (or bare prompt for small work) |
+| **Output** | Committed code, passing tests, ce:review autofix applied |
+| **Next** | `/dev:verify` (Phase 5) |
+
+## Iron Laws
+
+- **No failing test, no production code**
+- **No root cause, no fix**
+- **3 fix failures: stop and question the architecture**
