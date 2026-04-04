@@ -90,9 +90,15 @@ git worktree add "$WORKTREE_PATH" -b "fix/$FIX_NAME"
 - ce-review 审查修复代码
 - 循环直到审查通过
 
-### Step 4: 后续流程（复用）
+### Step 4: 输出与衔接
 
-修复完成后，依次调用：
-- `/dev-qa` - 验证修复 + 回归测试
-- `/dev-accept` - 人工验收（重点验证 Bug 已修复且无回归）
-- `/dev-ship` - 知识沉淀 + merge + 清理
+修复完成后，告诉用户：
+
+> Bug 修复完成，代码审查已通过。下一步：
+> - `/dev-qa` - 验证修复 + 回归测试
+> - `/dev-accept` - 人工验收
+> - `/dev-ship` - 知识沉淀 + merge + 清理
+> - 或通过 `/dev` 编排器自动执行后续流程
+
+注意：fix 模式跳过 dev-plan，自行创建 worktree（分支前缀 `fix/` 而非 `feat/`），
+因为 bug 修复无需完整的实施计划，根因分析报告即是修复方案。

@@ -64,8 +64,10 @@ argument-hint: "[功能描述、Bug 描述、原型路径或反馈内容]"
 完成后用 AskUserQuestion：
 > 需求评估完成。
 > - A) 继续 → 生成计划
-> - B) 需求已经很明确了，跳过评估，直接生成计划
+> - B) 需求已经很明确了，跳过评估，直接生成计划（用户原始输入作为需求）
 > - C) 中断，稍后手动继续
+
+如果 B，将用户的原始功能描述直接作为 dev-plan 的需求输入。
 
 ### Phase 2: 生成计划 + 创建工作区
 
@@ -80,7 +82,12 @@ argument-hint: "[功能描述、Bug 描述、原型路径或反馈内容]"
 
 如果 A，调用 Skill tool 执行 `dev-review-plan`。
 
-### Phase 4-7: 共享后半段
+### Phase 4: 编码 + 审查循环
+
+调用 Skill tool 执行 `dev-code`。
+ce-work + ce-review 循环，直到代码审查通过。
+
+### Phase 5-7: 共享后半段 (qa → accept → ship)
 
 → 跳到下方「共享后半段」
 
@@ -99,7 +106,7 @@ dev-pixel 会完成：
 - 调用 dev-plan 生成计划 + 创建 worktree
 - 调用 dev-code 编码 + 像素级审查循环
 
-### Phase 2-5: 共享后半段
+### Phase 2-4: 共享后半段 (qa → accept → ship)
 
 → 跳到下方「共享后半段」
 
@@ -118,13 +125,17 @@ dev-design 会完成：
 - 调用 dev-eval 做价值判断 + 需求设计
 - 原型设计（design-shotgun + design-html）
 
-### Phase 2: 计划 + 审查
+### Phase 2: 计划
 
 调用 Skill tool 执行 `dev-plan`（基于需求文档 + 原型）。
 
-用 AskUserQuestion 决定是否审查计划。
+用 AskUserQuestion 决定是否审查计划（调用 `dev-review-plan`）。
 
-### Phase 3-6: 共享后半段
+### Phase 3: 编码 + 审查循环
+
+调用 Skill tool 执行 `dev-code`。
+
+### Phase 4-6: 共享后半段 (qa → accept → ship)
 
 → 跳到下方「共享后半段」
 
@@ -143,7 +154,7 @@ dev-fix 会完成：
 - 根因分析（gstack-investigate）
 - 创建 worktree + 修复代码（dev-code）
 
-### Phase 2-5: 共享后半段
+### Phase 2-4: 共享后半段 (qa → accept → ship)
 
 → 跳到下方「共享后半段」
 

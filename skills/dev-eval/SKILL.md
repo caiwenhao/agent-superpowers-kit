@@ -4,7 +4,7 @@ description: |
   评估一个功能想法或改进需求。通过结构化对话分析问题、判断价值、明确范围，
   输出需求文档。内部使用 ce-brainstorm 进行探索。
   Use when: "评估这个想法", "这个值不值得做", "分析一下这个需求",
-  "evaluate this idea", "is this worth building", "这个功能怎么做"
+  "evaluate this idea", "is this worth building"
 argument-hint: "[想法或需求描述]"
 ---
 

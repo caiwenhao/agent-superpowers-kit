@@ -11,11 +11,11 @@
 | 自主设计 | `/dev` 或 `/dev-design` | 从反馈到设计到开发 (0→1) |
 | 排查修复 | `/dev` 或 `/dev-fix` | Bug 复现→根因分析→修复 |
 
-统一入口 `/dev` 会自动识别模式。也可以直接调用各模式专属 skill。
+统一入口 `/dev` 会自动识别模式。也可以直接调用各模式专属 skill 或阶段 skill。
 
 ## Skill routing
 
-当用户的请求匹配以下场景时，调用对应 skill：
+路由优先级：如果输入同时匹配 `/dev` 和子 skill，优先走 `/dev` 编排器。
 
 - 完整开发流程、从头做这个功能、开始开发 → invoke dev
 - 像素级还原、按原型开发、HTML 原型 → invoke dev-pixel
@@ -26,5 +26,5 @@
 - 审查计划、review plan → invoke dev-review-plan
 - 开始编码、写代码、implement → invoke dev-code
 - 测试、QA、全面测试 → invoke dev-qa
-- 验收、创建 PR → invoke dev-accept
+- 准备验收、验收通过了 → invoke dev-accept
 - 合并、发布、收尾、ship → invoke dev-ship

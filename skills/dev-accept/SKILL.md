@@ -4,7 +4,7 @@ description: |
   人工验收卡点。分析代码变更，输出验收步骤和注意点，
   等待人工确认后创建 GitHub issue 和 PR。
   Use when: "验收", "人工验收", "acceptance", "ready to review",
-  "创建PR", "提交代码", "准备提交"
+  "准备验收", "验收通过了"
 argument-hint: "[无参数]"
 ---
 
@@ -73,9 +73,11 @@ git diff main --name-only
 #### 4a. 创建 GitHub issue
 
 ```bash
-gh issue create \
+ISSUE_URL=$(gh issue create \
   --title "{功能标题}" \
-  --body "{基于需求文档的描述}"
+  --body "{基于需求文档的描述}")
+ISSUE_NUM=$(echo "$ISSUE_URL" | grep -oE '[0-9]+$')
+echo "Issue #$ISSUE_NUM created"
 ```
 
 记录 issue 编号。
@@ -83,8 +85,9 @@ gh issue create \
 #### 4b. 推送分支并创建 PR
 
 ```bash
-# 推送分支
-git push -u origin feat/{feature-name}
+# 推送当前分支（动态获取分支名，兼容 feat/ 和 fix/ 前缀）
+CURRENT_BRANCH=$(git branch --show-current)
+git push -u origin "$CURRENT_BRANCH"
 
 # 创建 PR，关联 issue
 gh pr create \
@@ -98,7 +101,7 @@ gh pr create \
 ## Test Plan
 {验收清单}
 
-Closes #{issue_number}"
+Closes #$ISSUE_NUM"
 ```
 
 ### Step 5: 输出与衔接
