@@ -10,7 +10,7 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-SRC_DIR="$SCRIPT_DIR/skills"
+SRC_DIR="$SCRIPT_DIR/claude-skills"
 DEST_DIR="$HOME/.claude/skills"
 
 SKILLS=(dev-discover dev-design dev-plan dev-code dev-verify dev-ship dev-learn dev-flow)

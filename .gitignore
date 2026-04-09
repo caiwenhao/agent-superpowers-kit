@@ -1,0 +1,7 @@
+# Local runtime data
+.brv/
+.omx/
+
+# External project sources (reference only)
+oh-my-codex/
+agent-skills/
