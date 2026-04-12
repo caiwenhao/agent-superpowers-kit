@@ -2,15 +2,15 @@
 
 ## Overview
 
-This document defines a Codex CLI-native skill system that keeps `dev:*` as the public workflow surface while making the underlying skill implementation fully comply with the `superpowers` meta-skill rules, especially `writing-skills`.
+This document defines a Codex CLI-native skill system that keeps `dev:*` as the public phase vocabulary while the currently supported literal Codex CLI invocation uses `$dev-flow`, `$dev-plan`, and the other hyphenated `$name` forms. The underlying skill implementation must fully comply with the `superpowers` meta-skill rules, especially `writing-skills`.
 
-Core decision: `dev:*` remains the user-facing phase vocabulary, but the actual skill names and directories use hyphenated `agentskills.io`-compatible names such as `dev-flow` and `dev-plan`.
+Core decision: `dev:*` remains the user-facing phase vocabulary and product naming, but the currently implemented literal invocation surface uses hyphenated skill names such as `$dev-flow` and `$dev-plan`.
 
 ## Goals
 
 - Preserve the 7-phase AI coding workflow as the main user mental model.
 - Make the skill set native to Codex CLI, not a Claude compatibility shim.
-- Keep `dev:*` as a thin orchestration layer over existing `superpowers`, `compound-engineering`, and `gstack` skills.
+- Keep `dev:*` as the workflow vocabulary while the implemented Codex CLI surface uses `$dev-*` skill names over existing `superpowers`, `compound-engineering`, and `gstack` skills.
 - Enforce `writing-skills` constraints on naming, descriptions, scope, and testing.
 - Default user-visible workflow reporting to Chinese while keeping code, paths, commands, and skill IDs in English.
 
@@ -40,7 +40,7 @@ The current reference material reveals several violations against `writing-skill
 | Descriptions summarize workflow internals | Models may stop at the description and skip the body |
 | Phase skills repeat large workflow details | Creates drift and makes maintenance expensive |
 | Claude-oriented and Codex-oriented variants both exist | Duplicate maintenance surface invites divergence |
-| No explicit alias contract between `dev:*` and skill names | Invocation and discovery behavior remain ambiguous |
+| No explicit contract between `dev:*` vocabulary and `$dev-*` skill names | Literal invocation and discovery behavior remain ambiguous |
 
 These failures define the minimum scope of the redesign.
 
@@ -48,20 +48,21 @@ These failures define the minimum scope of the redesign.
 
 ### Rule
 
-- User-facing invocation stays `dev:*`.
+- User-facing phase vocabulary stays `dev:*`.
+- Current literal Codex CLI invocation uses `$dev-flow`, `$dev-discover`, `$dev-plan`, and the other hyphenated `$name` forms.
 - Skill directory names and frontmatter `name` fields use hyphenated names.
 
 ### Examples
 
-| Public surface | Skill directory | Frontmatter name |
-|---|---|---|
-| `dev:flow` | `dev-flow/` | `dev-flow` |
-| `dev:discover` | `dev-discover/` | `dev-discover` |
-| `dev:plan` | `dev-plan/` | `dev-plan` |
+| Public phase vocabulary | Current literal Codex invocation | Skill directory | Frontmatter name |
+|---|---|---|---|
+| `dev:flow` | `$dev-flow` | `dev-flow/` | `dev-flow` |
+| `dev:discover` | `$dev-discover` | `dev-discover/` | `dev-discover` |
+| `dev:plan` | `$dev-plan` | `dev-plan/` | `dev-plan` |
 
 ### Rationale
 
-This preserves the phase vocabulary users already understand while complying with skill naming rules and keeping discovery predictable.
+This preserves the phase vocabulary users already understand while documenting the current `$dev-*` runtime surface, complying with skill naming rules, and keeping discovery predictable.
 
 ## Target Layout
 
@@ -265,7 +266,7 @@ Only add a flowchart if the decision boundary is non-obvious.
 
 ### Phase 1
 
-- Freeze the public `dev:*` vocabulary.
+- Freeze the public `dev:*` vocabulary and the current `$dev-*` literal invocation contract.
 - Stop treating colon-based frontmatter names as valid.
 - Define alias behavior explicitly.
 
@@ -284,7 +285,7 @@ Only add a flowchart if the decision boundary is non-obvious.
 
 These are intentionally deferred until the skill-writing phase:
 
-- The exact alias implementation mechanism for `dev:*` invocation.
+- Whether to add a literal `dev:*` invocation bridge beyond the current `$dev-*` surface.
 - Whether shared doctrine belongs in a directory-local `AGENTS.md` or a supporting reference file.
 - Whether `dev-design` should ship in the first wave or immediately after.
 - Whether supporting documentation under `docs/codex-skills/` should be generated or handwritten.
@@ -293,10 +294,9 @@ These are intentionally deferred until the skill-writing phase:
 
 This design is complete when:
 
-- The system has a single public phase vocabulary: `dev:*`.
+- The system has a single public phase vocabulary: `dev:*`, with the current literal Codex invocation surface documented as `$dev-*`.
 - All actual skill names are `writing-skills` compliant.
 - The first batch is limited to eight thin orchestration skills.
 - Each skill has a defined downstream dependency set.
 - Each skill has defined RED baseline scenarios before writing.
 - No phase skill description summarizes its own internal workflow.
-

@@ -95,7 +95,7 @@ Position in workflow: Phase 4 (code) -> **Phase 5** -> Phase 6 (delivery)
 
 5. **Run `todo-resolve`** to batch-process remaining todos
 
-6. **Next**: `/dev:ship` (Phase 6)
+6. **Next**: `$dev-ship` (Phase 6)
 
 ## Inputs / Outputs
 
@@ -103,7 +103,7 @@ Position in workflow: Phase 4 (code) -> **Phase 5** -> Phase 6 (delivery)
 |---|---|
 | **Input** | Code diff, plan file path (for R-ID verification) |
 | **Output** | PASS verdict, safe_auto fixes applied, todos resolved |
-| **Next** | `/dev:ship` (Phase 6) |
+| **Next** | `$dev-ship` (Phase 6) |
 
 ## Iron Laws
 

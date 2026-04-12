@@ -27,10 +27,10 @@ Position in workflow: Phase 3 (planning) -> **Phase 4** -> Phase 5 (verification
 ## Scene Detection (performed by `ce:work` internally)
 
 **Signal 1: Is there a plan file?**
-- No plan file, no bare prompt -> STOP, return to `/dev:plan`
+- No plan file, no bare prompt -> STOP, return to `$dev-plan`
 - No plan file, has bare prompt -> `ce:work` assesses complexity:
   - Trivial (1-2 files) -> proceed inline
-  - Large (10+ files, cross-cutting) -> recommend `/dev:discover` + `/dev:plan` first
+  - Large (10+ files, cross-cutting) -> recommend `$dev-discover` + `$dev-plan` first
 
 **Signal 2: Plan complexity (auto-detected from Implementation Units)**
 
@@ -73,7 +73,7 @@ Position in workflow: Phase 3 (planning) -> **Phase 4** -> Phase 5 (verification
 
    **GATE: 所有任务完成。测试通过。审查已应用。残余 todo 已记录。**
 
-4. **Next**: `/dev:verify` (Phase 5)
+4. **Next**: `$dev-verify` (Phase 5)
 
 ## Inputs / Outputs
 
@@ -81,7 +81,7 @@ Position in workflow: Phase 3 (planning) -> **Phase 4** -> Phase 5 (verification
 |---|---|
 | **Input** | Plan file path from Phase 3 (or bare prompt for small work) |
 | **Output** | Committed code, passing tests, ce:review autofix applied |
-| **Next** | `/dev:verify` (Phase 5) |
+| **Next** | `$dev-verify` (Phase 5) |
 
 ## Iron Laws
 

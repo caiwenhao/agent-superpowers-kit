@@ -31,7 +31,7 @@ Analyze user input to classify intent. Check these signals in order:
 
 **Signal 1: Is there an existing requirements doc?**
 - Search `docs/brainstorms/` for `*-requirements.md` matching the topic (within 30 days)
-- If found and approved -> SKIP Phase 1, go to `/dev:design` or `/dev:plan`
+- If found and approved -> SKIP Phase 1, go to `$dev-design` or `$dev-plan`
 - If found but incomplete -> RESUME, run `/ce:brainstorm` on existing doc
 
 **Signal 2: Does the user have a direction?**
@@ -91,8 +91,8 @@ All routes converge to `/ce:brainstorm` as the single exit.
    **GATE: 需求文档必须存在，document-review 通过（零 P0/P1），用户批准。**
 
 4. **Detect next phase** by scanning the approved requirements (中文宣告):
-   - 需求涉及 UI (views, pages, components, styles, layouts, visual) -> `/dev:design`
-   - 纯后端 / API / 基础设施 / CLI -> `/dev:plan`
+   - 需求涉及 UI (views, pages, components, styles, layouts, visual) -> `$dev-design`
+   - 纯后端 / API / 基础设施 / CLI -> `$dev-plan`
 
 ## Inputs / Outputs
 
@@ -100,7 +100,7 @@ All routes converge to `/ce:brainstorm` as the single exit.
 |---|---|
 | **Input** | User's idea, question, or feature description |
 | **Output** | `docs/brainstorms/YYYY-MM-DD-<topic>-requirements.md` with R-IDs |
-| **Next** | `/dev:design` (has UI) or `/dev:plan` (no UI) -- auto-detected |
+| **Next** | `$dev-design` (has UI) or `$dev-plan` (no UI) -- auto-detected |
 
 ## Iron Law
 

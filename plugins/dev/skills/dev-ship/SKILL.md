@@ -113,7 +113,7 @@ Verified code (from Phase 5)
 
    **GATE: Merge-readiness report shown to user. User confirms before merge.**
 
-5. **Next**: `/dev:learn` (Phase 7)
+5. **Next**: `$dev-learn` (Phase 7)
 
 ## Inputs / Outputs
 
@@ -121,7 +121,7 @@ Verified code (from Phase 5)
 |---|---|
 | **Input** | Verified code diff (Phase 5 PASS) |
 | **Output** | Merged PR, deployed to production, canary verified |
-| **Next** | `/dev:learn` (Phase 7) |
+| **Next** | `$dev-learn` (Phase 7) |
 
 ## Iron Law
 

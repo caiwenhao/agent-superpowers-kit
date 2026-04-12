@@ -60,7 +60,7 @@ Requirements Doc (from Phase 1)
   |   has approved.json,       Plan exists but needs design dimension audit
   |   plan lacks design
   |
-  +-- Has DESIGN.md, -------> SKIP Phase 2 -> /dev:plan
+  +-- Has DESIGN.md, -------> SKIP Phase 2 -> $dev-plan
       has approved.json,
       plan has design decisions
 ```
@@ -88,7 +88,7 @@ Requirements Doc (from Phase 1)
 
 4. **(Optional)** Run `/gstack-design-html` to generate high-fidelity prototype
 
-5. **Next**: `/dev:plan` (Phase 3)
+5. **Next**: `$dev-plan` (Phase 3)
 
 ## Inputs / Outputs
 
@@ -96,7 +96,7 @@ Requirements Doc (from Phase 1)
 |---|---|
 | **Input** | Phase 1 requirements doc, existing codebase |
 | **Output** | `DESIGN.md` (persistent) + `approved.json` (per-feature) |
-| **Next** | `/dev:plan` (Phase 3) |
+| **Next** | `$dev-plan` (Phase 3) |
 
 ## Iron Law
 

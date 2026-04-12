@@ -72,7 +72,7 @@ Completed work
   +-- [Knowledge stale] ----------> Route D: /ce:compound-refresh
   |   "outdated", "contradicts"      -> Updated/merged/deleted docs
   |
-  +-- [Nothing novel] ------------> SKIP Phase 7 -> /dev:discover (next item)
+  +-- [Nothing novel] ------------> SKIP Phase 7 -> $dev-discover (next item)
 ```
 
 ## Workflow
@@ -112,7 +112,7 @@ Completed work
    - `docs/solutions/`: YAML frontmatter searchable? `AGENTS.md`/`CLAUDE.md` points to it?
    - `learnings.jsonl`: entry written by gstack/learn (automatic)?
 
-4. **Next**: `/dev:discover` (Phase 1) -- closes the loop
+4. **Next**: `$dev-discover` (Phase 1) -- closes the loop
 
 ## Knowledge Feedback Loop
 
@@ -130,7 +130,7 @@ All gstack skills <-- preamble auto-searches learnings.jsonl ---------+
 |---|---|
 | **Input** | Completed work (shipped feature, resolved bug, finished sprint) |
 | **Output** | `docs/solutions/*.md`, `learnings.jsonl`, optional `SKILL.md` |
-| **Next** | `/dev:discover` (Phase 1) -- closes the loop |
+| **Next** | `$dev-discover` (Phase 1) -- closes the loop |
 
 ## Dual-Layer Architecture
 

@@ -28,7 +28,7 @@ Position in workflow: Phase 2 (design) -> **Phase 3** -> Phase 4 (implementation
 
 **Signal 1: Does a plan already exist?**
 - Search `docs/plans/` for plans matching the topic (within 30 days)
-- If found with `status: active` and REVIEW REPORT present -> SKIP, go to `/dev:code`
+- If found with `status: active` and REVIEW REPORT present -> SKIP, go to `$dev-code`
 - If found with `status: active` but no REVIEW REPORT -> resume at review step
 - If found with `status: completed` -> SKIP or create new plan (ask user)
 
@@ -99,7 +99,7 @@ Plan created by ce:plan
 
    **GATE: GSTACK REVIEW REPORT 写入计划文件。`plan-eng-review` CLEARED（零 P0/P1）。**
 
-6. **Next**: `/dev:code` (Phase 4)
+6. **Next**: `$dev-code` (Phase 4)
 
 ## Inputs / Outputs
 
@@ -107,7 +107,7 @@ Plan created by ce:plan
 |---|---|
 | **Input** | Phase 1 requirements doc path, Phase 2 `DESIGN.md` (if exists) |
 | **Output** | `docs/plans/YYYY-MM-DD-NNN-<type>-<name>-plan.md`（frontmatter 包含 `status: active`）with R-Trace + Impl Units |
-| **Next** | `/dev:code` (Phase 4) |
+| **Next** | `$dev-code` (Phase 4) |
 
 ## Iron Law
 

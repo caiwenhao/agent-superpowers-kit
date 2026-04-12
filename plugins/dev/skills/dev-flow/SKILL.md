@@ -3,7 +3,7 @@ name: dev-flow
 description: "Use when starting any development task, or when unsure which dev: phase to begin with. Detects the current project state, identifies which phase the work is in, and orchestrates the full discover->design->plan->code->verify->ship->learn pipeline automatically. The single entry point for the entire AI Coding workflow."
 ---
 
-# dev:flow -- 智能研发编排器
+# dev-flow -- 智能研发编排器
 
 ## 通用规则
 
@@ -13,10 +13,10 @@ description: "Use when starting any development task, or when unsure which dev: 
 
 ## Overview
 
-`dev:flow` is the single entry point for the entire AI Coding workflow. It **detects** where the current work stands in the 7-phase pipeline, **enters** at the right phase, and **drives** through to completion -- or stops at a GATE for user approval before continuing.
+`$dev-flow` is the single entry point for the entire AI Coding workflow. It **detects** where the current work stands in the 7-phase pipeline, **enters** at the right phase, and **drives** through to completion -- or stops at a GATE for user approval before continuing.
 
 ```
-dev:flow
+$dev-flow
   |
   +-- Detect current state
   |
@@ -27,7 +27,7 @@ dev:flow
   +-- <------------------------------- next work item ----------------+
 ```
 
-You do not need to call individual `dev:*` skills manually. `dev:flow` detects and routes.
+You do not need to call individual `dev:*` phase skills manually. `$dev-flow` detects and routes.
 
 ## Scene Detection: Where Are We?
 
@@ -112,13 +112,13 @@ ls .context/compound-engineering/ce-review/ 2>/dev/null
 
 ## Orchestration Loop
 
-Once the entry phase is determined, `dev:flow` drives through the pipeline:
+Once the entry phase is determined, `$dev-flow` drives through the pipeline:
 
 ```
 [Entry Point Detected]
       |
       v
-  Phase 1: /dev:discover
+  Phase 1: $dev-discover
       |  Scene Detection -> ideate / office-hours / brainstorm
       |  Output: requirements doc with R-IDs
       |  GATE: user approves requirements
@@ -128,7 +128,7 @@ Once the entry phase is determined, `dev:flow` drives through the pipeline:
       |                  no
       |                  |
       v                  v
-  Phase 2: /dev:design        |
+  Phase 2: $dev-design        |
       |  Scene Detection ->   |
       |  consultation /       |
       |  shotgun / skip       |
@@ -136,30 +136,30 @@ Once the entry phase is determined, `dev:flow` drives through the pipeline:
       |  GATE: design approved|
       |                       |
       v                       |
-  Phase 3: /dev:plan  <-------+
+  Phase 3: $dev-plan  <-------+
       |  ce:plan -> auto-select review depth
       |  Output: plan doc with Impl Units
       |  GATE: plan-eng-review CLEARED
       |
       v
-  Phase 4: /dev:code
+  Phase 4: $dev-code
       |  ce:work auto-selects strategy
       |  Built-in: ce:review mode:autofix
       |  GATE: all tasks done, tests pass
       |
       v
-  Phase 5: /dev:verify
+  Phase 5: $dev-verify
       |  ce:review full + auto-stack layers
       |  GATE: PASS verdict
       |
       v
-  Phase 6: /dev:ship
+  Phase 6: $dev-ship
       |  Auto-select Path A or B
       |  land-and-deploy with canary
       |  GATE: user confirms merge
       |
       v
-  Phase 7: /dev:learn
+  Phase 7: $dev-learn
       |  Auto-detect trigger type
       |  compound / retro / writing-skills
       |
@@ -169,7 +169,7 @@ Once the entry phase is determined, `dev:flow` drives through the pipeline:
 
 ## GATE Behavior
 
-At each GATE, `dev:flow` **stops and reports status** before continuing:
+At each GATE, `$dev-flow` **stops and reports status** before continuing:
 
 ```
 --- GATE: Phase 1 完成 ---
@@ -184,12 +184,12 @@ UI 检测: 是 (R1, R2 中提到 views/components)
 User can:
 - **继续** -- 进入下一阶段
 - **跳过** -- 跳过当前阶段（如后端无需设计）
-- **暂停** -- 暂停流程，稍后用 `/dev:flow` 恢复
+- **暂停** -- 暂停流程，稍后用 `$dev-flow` 恢复
 - **回退** -- "回到 Phase 1 修改需求"
 
 ## Resume Intelligence
 
-When `/dev:flow` is called again in a subsequent session:
+When `$dev-flow` is called again in a subsequent session:
 
 1. Scan for artifacts (Signal 3) to detect where the previous session left off
 2. Read the most recent plan's `status` field and checkbox progress
@@ -200,23 +200,23 @@ When `/dev:flow` is called again in a subsequent session:
 ## Handling Branches and Parallel Work
 
 ```
-dev:flow (main line of work)
+$dev-flow (main line of work)
   |
   +-- User says "also fix this bug while we're at it"
   |   -> Assess: is this related to current work?
   |     yes -> add to current plan as a new Implementation Unit
   |     no  -> "This is separate work. Finish current flow first, or use
-  |             /dev:flow in a new worktree for parallel development."
+  |             $dev-flow in a new worktree for parallel development."
   |
   +-- User says "pause this, work on something else"
   |   -> 调用 `/gstack-checkpoint` 保存当前状态 (branch, progress, decisions)
-  |   -> Start new /dev:flow for the new work item
+  |   -> Start new $dev-flow for the new work item
   |   -> When done, `/gstack-checkpoint` resume 恢复暂停的流程
 ```
 
 ## Phase Skip Rules
 
-Not every work item needs all 7 phases. `dev:flow` auto-detects skippable phases:
+Not every work item needs all 7 phases. `$dev-flow` auto-detects skippable phases:
 
 | Condition | Skip |
 |---|---|
@@ -246,54 +246,54 @@ When skipping, announce: "Skipping Phase 2 (design) -- pure backend work, no UI 
 ```
 用户: "我想在用户账号被禁用时发送邮件通知"
 
-dev:flow 检测:
+$dev-flow 检测:
   - Signal 0: 在 feat/notifications 分支，工作区就绪
   - Signal 1: 无进行中的工作
   - Signal 2: 明确的功能描述，中等范围
   - 进入 Phase 1
 
-Phase 1 (/dev:discover):
+Phase 1 ($dev-discover):
   场景: 明确功能，中等范围 -> Route C (Standard brainstorm)
   -> ce:brainstorm 产出需求文档 R1-R4
   -> document-review: 通过（2 轮循环，第 1 轮修复 1 个一致性问题）
   -> 检测到 UI: 是（通知设置页面）
   GATE: "需求已就绪。检测到 UI。进入 Phase 2?"
 
-Phase 2 (/dev:design):
+Phase 2 ($dev-design):
   场景: DESIGN.md 存在，该功能无 approved.json -> Route B
   -> design-shotgun 生成 3 个变体
   -> 用户选择变体 B
   GATE: "设计方向已确认。进入 Phase 3?"
 
-Phase 3 (/dev:plan):
+Phase 3 ($dev-plan):
   -> ce:plan 产出 4 个实施单元
   -> document-review: 通过
   -> 检测到 4 单元 -> plan-eng-review + plan-design-review
   -> plan-eng-review: CLEARED
   GATE: "计划已审查通过。进入 Phase 4?"
 
-Phase 4 (/dev:code):
+Phase 4 ($dev-code):
   -> ce:work 检测 4 单元，2 个独立 -> 并行+串行策略
   -> Unit 1-2 (并行): 邮件服务 + 通知模型
   -> Unit 3-4 (串行): 控制器 + 设置页面
   -> ce:review mode:autofix: 修复 2 个 safe_auto 问题
   GATE: "所有单元完成。测试通过。进入 Phase 5?"
 
-Phase 5 (/dev:verify):
+Phase 5 ($dev-verify):
   -> ce:review interactive: 8 个 persona 激活（含邮件处理的 security）
   -> 第 1 轮: 发现 1 个 P1 (邮件注入风险) + 1 个 P2
   -> 修复 -> 第 2 轮: 零 P0/P1 -> 通过
   -> test-browser: 通知设置页面测试通过
   GATE: "验证通过。进入 Phase 6?"
 
-Phase 6 (/dev:ship):
+Phase 6 ($dev-ship):
   场景: 无版本文件 + 上游 ce:review 已确认 -> Path A
   -> git-commit-push-pr: PR 已创建
   -> feature-video: 通知流程录屏
   -> land-and-deploy: 合并、部署、金丝雀健康
   GATE: "已发布并验证。进入 Phase 7?"
 
-Phase 7 (/dev:learn):
+Phase 7 ($dev-learn):
   场景: 功能已发布，邮件服务模式是新的 -> Route A
   -> ce:compound 记录邮件通知模式
   -> "知识已沉淀。准备进入下一个工作项。"
