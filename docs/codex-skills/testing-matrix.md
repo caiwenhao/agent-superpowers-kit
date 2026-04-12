@@ -16,8 +16,10 @@
 ```bash
 bash plugins/dev/tests/validate-frontmatter.sh || true
 bash plugins/dev/tests/validate-discovery.sh
+bash plugins/dev/tests/validate-phase-contract.sh
 ```
 
-Expected Task 2 state:
-- `validate-frontmatter.sh` fails on workflow-summary descriptions that still need rewrites.
-- `validate-discovery.sh` passes once `.agents/skills/dev-*` discovery paths exist and point at the canonical skill files.
+Expected state:
+- `validate-frontmatter.sh` passes when skill descriptions stay concise and avoid workflow-summary wording.
+- `validate-discovery.sh` passes when `.agents/skills/dev-*` discovery paths exist and point at the canonical skill files.
+- `validate-phase-contract.sh` passes when required delegates, handoff markers, and Chinese status/gate rules are present in the phase skills.

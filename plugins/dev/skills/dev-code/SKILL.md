@@ -11,14 +11,15 @@ Use `$dev-code` only when the task is ready for implementation.
 - approved plan -> route to `ce:work`
 - very small bare prompt -> allow inline execution
 - bug work -> require `systematic-debugging` before fix
-- implementation notes may trigger `test-driven-development`
+- test-first or behavior lock-in work -> add `test-driven-development`
+- UI implementation or visual change -> add `frontend-design`
+- user-facing status and gate reporting stays in Chinese
 
-## Execution Posture
-
-- Default to `ce:work` when a plan is already approved. Let it own execution strategy rather than re-planning inside this phase.
-- Inline execution is only for small, self-contained work that does not need a separate planning pass.
-- If the task is a bug, regression, or failing behavior report, run `systematic-debugging` first and only then implement the fix.
-- If the plan or implementation notes call for test-first work, or the change needs behavior lock-in before edits, use `test-driven-development`.
+## Conditional Delegates
+- `ce:work` is the default implementation lane when a reviewed plan exists.
+- `systematic-debugging` comes first for bugs, regressions, or failing behavior.
+- `test-driven-development` is additive when the change needs failing-test lock-in before edits.
+- `frontend-design` is additive for UI implementation or meaningful visual work.
 
 ## Exit Criteria
 

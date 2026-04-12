@@ -10,6 +10,7 @@ description: Use when verified work is ready for PR, merge, deployment, or post-
 - choose lightweight or full ship path from project state
 - unresolved review feedback blocks delivery
 - keep the literal invocation surface on `$dev-ship`
+- user-facing status and gate reporting stays in Chinese
 
 ## Delivery Paths
 | Project State | Route |

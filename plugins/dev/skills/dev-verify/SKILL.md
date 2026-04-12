@@ -9,15 +9,16 @@ Use `$dev-verify` as the delivery gate after implementation is done.
 
 ## Decision Rules
 - `ce:review` is always the core gate
-- additive review layers depend on diff scope and risk
+- additive lanes are risk-based: `test-browser`, `qa`, `design-review`, `cso`, `benchmark`
 - no pass claim without executed evidence
+- user-facing status and gate reporting stays in Chinese
 
-## Verification Posture
-
-- Start with `ce:review` for every completed implementation. This phase is not optional.
-- Add review layers only when the diff warrants them, such as security, API, performance, migration, UI, or browser-focused checks.
-- Run the concrete commands that prove the change is ready: diagnostics, tests, typecheck, build, or other directly relevant verification.
-- If any review or verification step fails, return to implementation, fix the issue, and rerun the gate.
+## Verification Additions
+- `ce:review` is always first.
+- Add `test-browser` or `qa` for browser-facing flows.
+- Add `design-review` for visual-risk changes.
+- Add `cso` for security-sensitive work.
+- Add `benchmark` for performance-risk changes.
 
 ## Exit Criteria
 

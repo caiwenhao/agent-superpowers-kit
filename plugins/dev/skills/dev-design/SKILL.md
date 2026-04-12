@@ -10,6 +10,7 @@ description: Use when approved requirements involve UI, visual behavior, or inte
 - existing design system + no new visual language -> route lightly
 - new or unclear visual direction -> route to design exploration
 - keep the literal invocation surface on `$dev-design`
+- user-facing status and gate reporting stays in Chinese
 
 ## Design Lanes
 | Condition | Outcome |

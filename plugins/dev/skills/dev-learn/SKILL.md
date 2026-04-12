@@ -11,6 +11,7 @@ description: Use when meaningful work is complete and a Codex CLI session should
 - stale knowledge -> `ce:compound-refresh`
 - reusable method -> `writing-skills`
 - no durable learning -> skip and close the loop cleanly
+- user-facing status and gate reporting stays in Chinese
 
 ## Exit / Handoff
 | Condition | Outcome |
