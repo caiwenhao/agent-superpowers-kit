@@ -1,5 +1,5 @@
 ---
-name: dev:verify
+name: dev-verify
 description: "Use after implementation to run multi-layer quality verification. Detects diff content to auto-select which review personas and additive layers to activate. ce:review is always the core gate."
 ---
 

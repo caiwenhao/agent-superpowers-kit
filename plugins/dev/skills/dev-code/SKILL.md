@@ -1,5 +1,5 @@
 ---
-name: dev:code
+name: dev-code
 description: "Use when a reviewed plan exists and it is time to write code. Routes through ce:work, which detects plan complexity and auto-selects execution strategy (inline, serial agents, parallel agents, or swarm)."
 ---
 

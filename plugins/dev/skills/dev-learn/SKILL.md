@@ -1,5 +1,5 @@
 ---
-name: dev:learn
+name: dev-learn
 description: "Use after solving a significant problem, shipping a feature, or completing a sprint. Detects the trigger type and routes to the right knowledge capture skill: ce:compound for problems, retro for sprints, writing-skills for reusable methods."
 ---
 
