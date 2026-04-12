@@ -21,6 +21,15 @@ Keep the skill thin: inspect the current repo state, choose the right phase, and
 - user asks to ship
 - user provides plan path
 
+## Routing Rules
+| Signal | Outcome |
+|---|---|
+| active plan or other unfinished work | resume the appropriate later phase, usually `$dev-code`, `$dev-verify`, or `$dev-ship` |
+| dirty branch with review evidence | route to `$dev-ship` when delivery-ready; otherwise route to `$dev-verify` |
+| explicit ship request | route to `$dev-ship` |
+| plan path provided | route to `$dev-code` |
+| no relevant artifacts or task still vague | route to `$dev-discover` |
+
 ## Decision Rules
 - inspect artifacts first
 - resume before restarting
