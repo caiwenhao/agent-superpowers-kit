@@ -1,6 +1,6 @@
 ---
 name: dev-code
-description: Use when an approved plan exists or a very small bare prompt is ready for implementation in a Codex CLI session
+description: 用于已有批准计划，或在 Codex CLI 会话中一个范围很小的裸提示已经可以直接进入实现时
 ---
 
 # Phase 4: Code

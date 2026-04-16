@@ -14,12 +14,23 @@
 ## Validation Commands
 
 ```bash
-bash plugins/dev/tests/validate-frontmatter.sh || true
+bash plugins/dev/tests/validate-frontmatter.sh
 bash plugins/dev/tests/validate-discovery.sh
+bash plugins/dev/tests/validate-bundle.sh
+bash plugins/dev/tests/validate-trigger-fixtures.sh
 bash plugins/dev/tests/validate-phase-contract.sh
 ```
 
+Optional runtime smoke:
+
+```bash
+bash plugins/dev/tests/validate-runtime-smoke.sh
+```
+
 Expected state:
-- `validate-frontmatter.sh` passes when skill descriptions stay concise and avoid workflow-summary wording.
-- `validate-discovery.sh` passes when `.agents/skills/dev-*` discovery paths exist and point at the canonical skill files.
+- `validate-frontmatter.sh` passes when skill descriptions stay concise, accept the repo's English-or-Chinese trigger prefixes, and avoid workflow-summary wording in both languages.
+- `validate-discovery.sh` passes when `.codex/skills/dev-*` discovery paths exist and point at the canonical skill files; `.agents/skills/` remains an optional legacy mirror.
+- `validate-bundle.sh` passes when `codex-skills/` exposes a complete human-facing bundle view with correct symlink targets.
+- `validate-trigger-fixtures.sh` passes when the repo's published Chinese trigger examples still map to the intended `dev-*` phase. This is a heuristic fixture test, not a full Codex runtime integration test.
 - `validate-phase-contract.sh` passes when required delegates, handoff markers, and Chinese status/gate rules are present in the phase skills.
+- `validate-runtime-smoke.sh` passes when a real `codex exec` session, grounded in the repo-local skill files, classifies a small Chinese fixture set to the intended `dev-*` skills. It is intentionally optional because it depends on login state and spends real model tokens.

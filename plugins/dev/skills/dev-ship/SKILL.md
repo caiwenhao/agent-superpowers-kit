@@ -1,6 +1,6 @@
 ---
 name: dev-ship
-description: Use when verified work is ready for PR, merge, deployment, or post-deploy checks in a Codex CLI session
+description: 用于已验证的工作在 Codex CLI 会话中已经准备好进入 PR、合并、部署或部署后检查时
 ---
 
 # dev-ship

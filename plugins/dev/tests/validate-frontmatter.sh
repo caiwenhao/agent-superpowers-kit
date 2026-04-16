@@ -14,6 +14,14 @@ workflow_summary_patterns=(
   "auto-triggered"
   "auto-stacked"
   "single entry point"
+  "检测"
+  "路由到"
+  "路由至"
+  "统一编排"
+  "自动选择"
+  "自动触发"
+  "自动叠加"
+  "唯一入口"
 )
 
 while IFS= read -r file; do
@@ -35,7 +43,7 @@ while IFS= read -r file; do
     continue
   fi
 
-  if [[ "$description" != Use\ when* ]]; then
+  if [[ "$description" != Use\ when* && "$description" != 用于* && "$description" != 适用于* ]]; then
     echo "INVALID description prefix in $file: $description"
     status=1
   fi

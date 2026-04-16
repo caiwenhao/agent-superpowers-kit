@@ -1,6 +1,6 @@
 ---
 name: dev-discover
-description: Use when new work is still vague, value is uncertain, or a Codex CLI session needs a requirements artifact before planning
+description: 用于新工作仍然模糊、价值尚不明确，或在 Codex CLI 会话中规划前需要先产出需求文档时
 ---
 
 # dev-discover

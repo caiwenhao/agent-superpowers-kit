@@ -1,6 +1,6 @@
 ---
 name: dev-plan
-description: Use when approved requirements exist and a Codex CLI session needs a reviewed implementation plan before code changes begin
+description: 用于已存在批准后的需求，且在 Codex CLI 会话中开始改代码前需要先得到经过审查的实施计划时
 ---
 
 # dev-plan

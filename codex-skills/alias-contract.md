@@ -1,0 +1,1 @@
+../docs/codex-skills/alias-contract.md

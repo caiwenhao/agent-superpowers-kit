@@ -1,6 +1,6 @@
 ---
 name: dev-verify
-description: Use when implementation is complete and a Codex CLI session needs evidence-based quality verification before delivery
+description: 用于实现已经完成，且在 Codex CLI 会话中交付前需要基于证据做质量验证时
 ---
 
 # Phase 5: Verify

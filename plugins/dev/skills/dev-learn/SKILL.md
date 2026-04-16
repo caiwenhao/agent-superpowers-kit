@@ -1,6 +1,6 @@
 ---
 name: dev-learn
-description: Use when meaningful work is complete and a Codex CLI session should capture reusable knowledge or refresh an existing pattern
+description: 用于有意义的工作已经完成，且在 Codex CLI 会话中应该沉淀可复用知识或刷新既有模式时
 ---
 
 # dev-learn

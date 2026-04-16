@@ -195,7 +195,7 @@ Each skill must follow these rules:
 | Field | Rule |
 |---|---|
 | `name` | Hyphenated only, no colons |
-| `description` | Starts with `Use when...` |
+| `description` | Starts with `Use when...`, `用于...`, or `适用于...` |
 | `description` | Describes triggering conditions only |
 | `description` | Must not summarize workflow internals |
 | `description` | Prefer under 500 characters |
@@ -205,7 +205,7 @@ Example:
 ```yaml
 ---
 name: dev-flow
-description: Use when starting a development task, resuming interrupted work, or when the correct workflow phase is unclear in a Codex CLI session
+description: 用于开始开发任务、恢复中断工作，或在 Codex CLI 会话中当前应进入哪个 dev 阶段还不明确时
 ---
 ```
 

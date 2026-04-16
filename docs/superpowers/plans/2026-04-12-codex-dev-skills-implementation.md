@@ -160,7 +160,7 @@ while IFS= read -r file; do
     status=1
   fi
 
-  if [[ "$description" != Use\ when* ]]; then
+  if [[ "$description" != Use\ when* && "$description" != 用于* && "$description" != 适用于* ]]; then
     echo "INVALID description prefix in $file"
     status=1
   fi
@@ -589,7 +589,7 @@ for f in .agents/skills/*/SKILL.md; do
 done
 ```
 
-Expected: all `name:` values are hyphenated and all `description:` values start with `Use when`.
+Expected: all `name:` values are hyphenated and all `description:` values start with `Use when` or the repo-approved Chinese trigger prefixes.
 
 - [ ] **Step 3: Verify the design spec is still matched**
 

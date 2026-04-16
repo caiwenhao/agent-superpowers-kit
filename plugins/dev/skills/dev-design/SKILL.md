@@ -1,6 +1,6 @@
 ---
 name: dev-design
-description: Use when approved requirements involve UI, visual behavior, or interaction changes and a Codex CLI session must decide the correct design lane
+description: 用于已批准需求涉及 UI、视觉行为或交互变更，且在 Codex CLI 会话中需要确定正确设计路径时
 ---
 
 # dev-design
