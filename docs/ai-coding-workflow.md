@@ -82,7 +82,17 @@
 
 ### 智能路由：按意图清晰度分流
 
+**前置步骤：Wiki Query** -- 路由前先查询项目 wiki + 全局 wiki，已有相关知识注入 brainstorm 上下文。
+
 ```
+用户输入
+    |
+    v
+Wiki Query (项目 wiki/index.md + ~/.claude/wiki/index.md)
+    |  找到相关页 -> 读取并注入 brainstorm context
+    |  无相关页 -> 跳过
+    |
+    v
 "不知道做什么"     -> Route A: ce:ideate (排名创意) -> ce:brainstorm
 "值不值得做"       -> Route B: office-hours (YC 验证) -> ce:brainstorm
 "加个功能"（模糊） -> Route C: ce:brainstorm (Standard/Deep)
@@ -185,7 +195,8 @@
     |
     v
 ce:plan (唯一创建器)
-    |  并行研究 Agent (repo-research + learnings + best-practices + framework-docs)
+    |  并行研究 Agent (repo-research + learnings + best-practices + framework-docs + wiki-search)
+    |  Wiki Query: 搜索项目 wiki/ + 全局 ~/.claude/wiki/ 获取已有模式和决策
     |  Requirements Trace 回链需求文档
     |  Implementation Units (每个 = 一个原子提交)
     |  Test Scenarios (枚举验证点，不预写代码)
@@ -435,6 +446,10 @@ ship (合并基准分支 -> 测试 -> 覆盖率审计 60%/80% -> 计划完成度
   |   "流程总在此卡住",                    审查现有 SKILL.md -> 识别 gap -> 更新
   |   "上游有新能力")                      验证: 改进后的技能在历史场景中表现更好
   |
+  +-- [外部知识源] ("这篇文章",           -> Route F: Wiki Ingest
+  |   "这个文档", "研究一下这个")           读源 -> 写摘要页 -> 更新 entity/concept 页
+  |                                        更新 index.md + 追加 log.md
+  |
   +-- [无新知识] --------------------------> 跳过 -> dev:discover (下一项)
 ```
 
@@ -447,6 +462,7 @@ ship (合并基准分支 -> 测试 -> 覆盖率审计 60%/80% -> 计划完成度
 | `ce:compound-refresh` | 维护 | 更新/合并/删除 | 知识库过期时 |
 | `writing-skills` | 方法论 | SKILL.md | 发现跨项目模式时 |
 | `writing-skills` (REFACTOR) | 技能改进 | 更新 SKILL.md | 重复发现 / 流程摩擦 / 上游更新 |
+| Wiki Ingest | 知识编译 | wiki 页面（5-15 页/次） | 每次 solution/retro 写入后 + 外部源 |
 | `gstack/retro` | 周期 | 回顾报告 | 每周分析 |
 
 ### 知识闭环
@@ -454,12 +470,17 @@ ship (合并基准分支 -> 测试 -> 覆盖率审计 60%/80% -> 计划完成度
 ```
 Phase 4 (ce:work) -- 解决问题 --> Phase 7 (ce:compound) -- 沉淀 --> docs/solutions/
                                                                         |
-Phase 3 (ce:plan) <-- learnings-researcher 搜索 -------------------------+
+                                                                   Wiki Ingest
+                                                                        |
+                                                                   wiki/ (结构化互链)
+                                                                        |
+Phase 1 (ce:brainstorm) <-- Wiki Query 注入已有知识 --------------------+
+Phase 3 (ce:plan) <-- learnings-researcher + wiki-search ---------------+
 Phase 5 (ce:review) <-- learnings-researcher 始终启用 -------------------+
 所有 gstack 技能 <-- preamble 自动搜索 learnings.jsonl ------------------+
 ```
 
-**知识不只是被记录 -- 它被自动注入到未来的规划和审查中。这就是"compound"（复利）的含义。**
+**知识不只是被记录 -- 它被��译成结构化知识网，自动注入到未来的发现、规划和审查中。**
 
 ---
 
@@ -512,8 +533,9 @@ Phase 5 (ce:review) <-- learnings-researcher 始终启用 -------------------+
 | 频率 | 动作 |
 |---|---|
 | **每次 retro（周）** | 扫描 `learnings.jsonl` 重复模式 + retro 摩擦点 -> 触发 Route E |
-| **每次子模块更新** | 对��� delta，分析新技能是否影响 dev:* 路由 |
+| **每次子模块更新** | 对比 delta，分析新技能是否影响 dev:* 路由 |
 | **每月** | 全量扫描 claude-skills/ 引用的技能名，标记过期引用 |
+| **每次 retro（周）** | **Wiki Lint**: 检查矛盾、过期引用、孤儿页、缺失概念页、断裂交叉引用 |
 
 ### 知识-技能双闭环
 
@@ -528,6 +550,99 @@ retro   -> 摩擦点   -> 技能巡检      -> 更新 SKILL.md -> 所有 Phase (
 ```
 
 **知识沉淀让未来少犯错。技能演进让流程本身持续变好。两者组合 = 复利的复利。**
+
+---
+
+## Wiki 知识层（贯穿全流程）
+
+> 基于 [LLM Wiki](https://gist.github.com/tobi/1cf3f88b03f6cad16c1ebd530096e649) 模式：LLM 增量构建和维护一个结构化互链的 Markdown 知识网。原始文档（docs/solutions/、learnings.jsonl、retro 报告）是不可变的源，wiki 是它们的编译产物。
+
+### 两层架构
+
+```
+项目级: {project}/wiki/
+  ├── index.md          # 内容索引（LLM 维护，Query 入口）
+  ├── log.md            # 操作日志（append-only: ingest/query/lint）
+  ├── entities/         # 实体页（模块、服务、API、数据模型）
+  ├── concepts/         # 概念页（架构模式、设计决策、技术选型）
+  ├── sources/          # 源摘要页（brainstorm/retro/外部文档摘要）
+  └── synthesis/        # 综合页（跨源分析、对比、演进趋势）
+
+全局级: ~/.claude/wiki/
+  ├── index.md
+  ├── log.md
+  ├── frameworks/       # 框架最佳实践（Rails, React, etc.）
+  ├── patterns/         # 通用工程模式（缓存策略、错误处理、测试策略）
+  ├── conventions/      # 团队约定（命名、提交、审查标准）
+  └── tools/            # 工具使用知识（CLI、部署平台、监控）
+```
+
+项目 wiki 记录**项目特定**知识（本项目的架构、踩坑、决策）。全局 wiki 记录**跨项目通用**知识（框架模式、工具经验、团队约定）。两层互相引用。
+
+### 三操作
+
+| 操作 | 描述 | 触发阶段 |
+|---|---|---|
+| **Ingest** | 读源 → 写/更新摘要页 → 更新 entity/concept 页（5-15 页/次）→ 更新 index.md → 追加 log.md | Phase 7 (自动) + Phase 1 (外部源) |
+| **Query** | 读 index.md → 定位相关页 → 读取 → 综合回答（好的回答可反写为 synthesis 页） | Phase 1 (前置) + Phase 3 (研究) |
+| **Lint** | 检查矛盾、过期引用、孤儿页、缺失概念页、断裂交叉引用 → 建议修复 + 新源待 ingest | 技能巡检（周） |
+
+### 与现有知识层的关系
+
+```
+Raw Sources（保留，不可变）:
+  docs/solutions/*.md        -- ce:compound 写入的解决方案
+  learnings.jsonl            -- gstack 自动写���的一行洞察
+  docs/brainstorms/          -- 需求文档
+  retro reports              -- 回顾报告
+
+Wiki（新增，LLM 维护）:
+  {project}/wiki/            -- 项目知识的结构化编译
+  ~/.claude/wiki/            -- 跨项目知识的结构化编译
+
+关系: Raw Sources 是 Wiki 的输入。Wiki 是 Raw Sources 的结构化编译。
+两者共存。Wiki 不替代 Raw Sources，而是在其上构建交叉引用和综合分析。
+```
+
+### Wiki 在各阶段的角色
+
+```
+Phase 1 (Discover)                    Phase 3 (Plan)
+  Wiki Query ──────────────────────>    Wiki Query
+  "已有 3 篇相关页，                     ce:plan 研究 Agent
+   注入 brainstorm"                     搜索 wiki 获取模式和决策
+         ^                                    ^
+         |                                    |
+         |         Wiki (持续编译)              |
+         |     ┌──────────────────┐           |
+         +─────│  entities/       │───────────+
+               │  concepts/       │
+               │  sources/        │
+               │  synthesis/      │
+               └──────┬───────────┘
+                      ^
+                      |
+              Wiki Ingest (5-15 页/次)
+                      |
+Phase 7 (Learn)       |         外部知识
+  ce:compound ────────+      用户提供文章/
+  retro ──────────────+      文档/paper ──────+
+```
+
+### 跨项目知识传播
+
+```
+项目 A 的 wiki/concepts/caching-strategy.md
+  |
+  "这个缓存策略适用于所有 Rails 项目"
+  |
+  v
+~/.claude/wiki/patterns/rails-caching.md (全局)
+  |
+  v
+项目 B 的 Phase 3 (ce:plan) -- Wiki Query 搜全局 wiki
+  -> "全局 wiki 有 Rails 缓存最佳实践，引用到计划中"
+```
 
 ---
 

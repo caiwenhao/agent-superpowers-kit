@@ -29,6 +29,12 @@ Position in workflow: **Phase 1** -> Phase 2 (design) or Phase 3 (planning)
 
 Analyze user input to classify intent. Check these signals in order:
 
+**Signal 0: Wiki Query (前置步骤)**
+- Search project `wiki/index.md` and global `~/.claude/wiki/index.md` for pages related to the user's topic
+- If relevant pages found -> read them and inject as brainstorm context
+- Announce (中文): "Wiki 中找到 N 篇相关页面，注入 brainstorm 上下文。" or "Wiki 中无相关知识。"
+- This step is informational — it enriches context but does not change routing
+
 **Signal 1: Is there an existing requirements doc?**
 - Search `docs/brainstorms/` for `*-requirements.md` matching the topic (within 30 days)
 - If found and approved -> SKIP Phase 1, go to `/dev:design` or `/dev:plan`

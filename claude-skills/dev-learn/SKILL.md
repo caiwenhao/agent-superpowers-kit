@@ -60,6 +60,11 @@ Analyze the conversation history and recent git activity to classify the trigger
 - A skill references a tool/skill name that no longer exists
 - -> Route E: Skill improvement
 
+**Signal 7: Is there external knowledge to ingest?**
+- User provides an article, paper, document, or URL ("这篇文章", "研究一下这个", "ingest this")
+- User shares learnings from another project or team
+- -> Route F: Wiki Ingest
+
 ## Routing
 
 ```
@@ -83,6 +88,10 @@ Completed work
   |   repeated findings,             -> Updated SKILL.md + workflow doc
   |   upstream new capabilities,
   |   process friction
+  |
+  +-- [External knowledge] -------> Route F: Wiki Ingest
+  |   article, paper, doc, URL       -> wiki/sources/ + entity/concept updates
+  |   cross-project learnings         -> index.md + log.md updated
   |
   +-- [Nothing novel] ------------> SKIP Phase 7 -> /dev:discover (next item)
 ```
@@ -127,6 +136,21 @@ Completed work
    - For friction: trace retro friction points to specific Phase's Scene Detection
    - Update SKILL.md + `docs/ai-coding-workflow.md` in sync
    - Verify: improved skill routes correctly on historical cases from retro
+
+   **Route F: Wiki Ingest** (knowledge compilation)
+   - Read the source (article, doc, solution, retro output)
+   - Write/update a source summary page in `wiki/sources/`
+   - Update related entity pages (`wiki/entities/`) and concept pages (`wiki/concepts/`)
+   - A single ingest may touch 5-15 wiki pages
+   - Update `wiki/index.md` (add/update entry with link + one-line summary)
+   - Append to `wiki/log.md` (timestamp + operation + source + pages touched)
+   - If knowledge is cross-project generalizable: also ingest to `~/.claude/wiki/`
+   - Good query answers can be filed back as `wiki/synthesis/` pages
+
+3. **Wiki Ingest (auto, after Route A and B)**
+   - After `ce:compound` writes `docs/solutions/*.md` -> auto-trigger Wiki Ingest for project wiki
+   - After `gstack-retro` completes -> auto-trigger Wiki Ingest for retro findings
+   - Announce (中文): "Solution 已写入 docs/solutions/。正在 ingest 到 wiki -- 更新了 N 个页面。"
 
 3. **Verify knowledge is discoverable**
    - `docs/solutions/`: YAML frontmatter searchable? `AGENTS.md`/`CLAUDE.md` points to it?
