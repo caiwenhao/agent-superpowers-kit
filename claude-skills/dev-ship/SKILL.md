@@ -81,9 +81,9 @@ Verified code (from Phase 5)
    **Path A: CE Lightweight**
    ```
    /ce:git-commit-push-pr
+     - Delegates to `ce-pr-description` for PR title/body generation
      - Auto-detects conventions from repo history
      - Logical commit splitting (file-level)
-     - Adaptive PR description
      [+ feature-video in parallel if UI detected]
    /gstack-land-and-deploy
      - CI wait -> merge-readiness report -> merge -> deploy -> canary

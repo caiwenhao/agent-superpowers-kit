@@ -242,6 +242,7 @@ ce:work (自动检测策略)
     +-- 3+ 单元有顺序依赖        -> 串行 Agent
     +-- 3+ 单元互相独立          -> 并行 Agent
     +-- 10+ 单元需要协调         -> Swarm (Agent Teams)
+    +-- 可度量优化目标            -> ce-optimize (迭代实验循环)
     |
     v
 每个任务内部：
@@ -261,10 +262,11 @@ ce:work (自动检测策略)
 | Implementation Unit 标记 `test-first` | `test-driven-development` (RED-GREEN-REFACTOR) |
 | Implementation Unit 标记 `characterization-first` | 先写特征测试再修改 |
 | Implementation Unit 标记 `external-delegate` | Codex 委托模式 (`ce:work-beta`) |
-| 运行时遇到 bug | `systematic-debugging` / `investigate` |
+| 运行时遇到 bug | `ce-debug`（因果链门控 4 阶段）/ `investigate` |
 | 多个独立测试失败 | `dispatching-parallel-agents` |
 | 触碰 `views/`, `components/`, `*.tsx`, `*.css` | `frontend-design`（自动检测 DESIGN.md） |
 | Plan 引用 GitHub Issue | `reproduce-bug` |
+| 目标为可度量指标优化（prompt/性能/搜索质量） | `ce-optimize`（实验循环 + 度量收敛） |
 
 ### 铁律
 
@@ -289,6 +291,9 @@ ce:work (自动检测策略)
     |
     v
 ce:review interactive plan:<path> (核心, 多轮循环最多 3 轮)
+    |
+    |-- 跨模型对抗审查: Claude + Codex 始终并行派发
+    |   大 diff (200+ 行) 额外加 Codex 结构化 P1 门控
     |
     |-- 6 始终启用: correctness, testing, maintainability,
     |               project-standards, agent-native, learnings
@@ -320,6 +325,7 @@ dev:verify 自动叠加额外层:
     +-- diff 涉及 prompt/llm/ai          -> gstack/review (LLM 信任边界)
     +-- diff 涉及热 API/SQL              -> gstack/benchmark (性能基线)
     +-- diff 涉及 README/docs/CLI        -> gstack/devex-review
+    +-- AI 生成代码质量检测              -> slop-scan (信息性，非阻塞)
     |
     v
 todo-resolve (批量处理残余)
@@ -332,7 +338,7 @@ todo-resolve (批量处理残余)
 | 模式 | `mode:autofix` | `interactive` |
 | 目的 | 快速 safe_auto 修复 | 完整审查含 gated_auto 和 manual |
 | 轮次 | 最多 2 轮 | 最多 3 轮 |
-| 叠加层 | 无 | 按 diff 自动叠加 |
+| 叠加层 | 无 | 按 diff 自动叠加 + 跨模型对抗 + slop-scan |
 
 ### 铁律
 
@@ -376,7 +382,7 @@ todo-resolve (批量处理残余)
 ### Path A: CE 轻量路径
 
 ```
-git-commit-push-pr (自适应 PR 描述)
+git-commit-push-pr (ce-pr-description 生成描述 -> 自适应 PR)
   -> land-and-deploy (CI -> merge-readiness 报告 -> 合并 -> 部署 -> 金丝雀)
 ```
 
@@ -425,6 +431,10 @@ ship (合并基准分支 -> 测试 -> 覆盖率审计 60%/80% -> 计划完成度
   +-- [知识库过期] ("outdated", "stale") --> Route D: ce:compound-refresh
   |   分类: Keep / Update / Consolidate / Replace / Delete
   |
+  +-- [技能可改进] ("同一发现反复出现",  -> Route E: writing-skills (REFACTOR 模式)
+  |   "流程总在此卡住",                    审查现有 SKILL.md -> 识别 gap -> 更新
+  |   "上游有新能力")                      验证: 改进后的技能在历史场景中表现更好
+  |
   +-- [无新知识] --------------------------> 跳过 -> dev:discover (下一项)
 ```
 
@@ -436,6 +446,7 @@ ship (合并基准分支 -> 测试 -> 覆盖率审计 60%/80% -> 计划完成度
 | `ce:compound` | 手动、主动 | 完整文档 | 显式调用 |
 | `ce:compound-refresh` | 维护 | 更新/合并/删除 | 知识库过期时 |
 | `writing-skills` | 方法论 | SKILL.md | 发现跨项目模式时 |
+| `writing-skills` (REFACTOR) | 技能改进 | 更新 SKILL.md | 重复发现 / 流程摩擦 / 上游更新 |
 | `gstack/retro` | 周期 | 回顾报告 | 每周分析 |
 
 ### 知识闭环
@@ -449,6 +460,74 @@ Phase 5 (ce:review) <-- learnings-researcher 始终启用 -------------------+
 ```
 
 **知识不只是被记录 -- 它被自动注入到未来的规划和审查中。这就是"compound"（复利）的含义。**
+
+---
+
+## 技能演进机制（跨阶段）
+
+> Phase 7 的 Route E 处理运行时发现的改进。本节定义**定期巡检和上游同步**的独立机制。
+
+### 触发信号
+
+| 信号 | 来源 | 检测方式 |
+|---|---|---|
+| **重复发现** | Phase 5 review 多次报告同类 P1 | `learnings.jsonl` 中同一 category 出现 3+ 次 |
+| **流程摩擦** | Phase 4 实现中反复踩同一坑 | retro 报告中相同文件热点连续 2 周 |
+| **上游新能力** | compound-engineering / superpowers / gstack 子模块更新 | `git submodule status` delta 非零 |
+| **技能过期** | 技能引用的工具/技能已改名或删除 | 技能内引用的 skill name 在 skill registry 中不存在 |
+
+### 改进流程
+
+```
+触发信号
+    |
+    v
+分析 gap（哪条路由/规则需要改）
+    |
+    +-- [上游新能力] ----> 1. 读上游 SKILL.md / changelog
+    |                       2. 判断是否影响 dev:* 路由
+    |                       3. 更新 workflow 文档 + claude-skills/
+    |
+    +-- [重复发现] ------> 1. 从 learnings.jsonl 聚合模式
+    |                       2. 定位缺失的路由规则或检测信号
+    |                       3. writing-skills REFACTOR 更新技能
+    |
+    +-- [流程摩擦] ------> 1. 从 retro 提取摩擦点
+    |                       2. 追溯到具体 Phase 的 Scene Detection
+    |                       3. 补充信号或调整路由
+    |
+    +-- [技能过期] ------> 1. 扫描 SKILL.md 中的引用
+                            2. 替换为当前等价技能
+                            3. 验证路由仍可达
+    |
+    v
+验证: 改进后的技能在历史场景（retro 中的案例）中路由正确
+    |
+    v
+同步: docs/ai-coding-workflow.md + claude-skills/ 同时更新
+```
+
+### 巡检节奏
+
+| 频率 | 动作 |
+|---|---|
+| **每次 retro（周）** | 扫描 `learnings.jsonl` 重复模式 + retro 摩擦点 -> 触发 Route E |
+| **每次子模块更新** | 对��� delta，分析新技能是否影响 dev:* 路由 |
+| **每月** | 全量扫描 claude-skills/ 引用的技能名，标记过期引用 |
+
+### 知识-技能双闭环
+
+```
+知识闭环 (已有):
+Phase 4 -> 解决问题 -> Phase 7 -> docs/solutions/ -> Phase 3/5 (learnings-researcher)
+
+技能闭环 (新增):
+Phase 5 -> 重复发现 -> Phase 7 Route E -> 更新 SKILL.md -> Phase 4/5 (更好的路由)
+retro   -> 摩擦点   -> 技能巡检      -> 更新 SKILL.md -> 所有 Phase (更少摩擦)
+上游更新 -> delta    -> 技能同步      -> 更新 SKILL.md -> Phase 4/5 (新能力可用)
+```
+
+**知识沉淀让未来少犯错。技能演进让流程本身持续变好。两者组合 = 复利的复利。**
 
 ---
 

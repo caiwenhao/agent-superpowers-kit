@@ -41,6 +41,7 @@ Position in workflow: Phase 3 (planning) -> **Phase 4** -> Phase 5 (verification
 | 3+ units with sequential dependencies | Serial sub-agents |
 | 3+ units with independent units (no shared files) | Parallel sub-agents |
 | 10+ units needing inter-agent coordination | Swarm (Agent Teams) |
+| Measurable optimization goal (prompt quality, latency, search relevance) | `ce-optimize` (metric-driven experiment loop) |
 
 **Signal 3: Execution posture (auto-detected from plan content)**
 
@@ -49,10 +50,11 @@ Position in workflow: Phase 3 (planning) -> **Phase 4** -> Phase 5 (verification
 | Implementation Unit has `Execution note: test-first` | `test-driven-development` (RED-GREEN-REFACTOR) |
 | Implementation Unit has `Execution note: characterization-first` | Characterization tests before changes |
 | Implementation Unit has `Execution note: external-delegate` | Codex delegation mode |
-| Bug encountered during implementation | `systematic-debugging` / `investigate` |
+| Bug encountered during implementation | `ce-debug` (causal-chain-gated, 4-phase) / `investigate` |
 | Multiple independent test failures | `dispatching-parallel-agents` |
 | Files in `views/`, `components/`, `*.tsx`, `*.css` touched | `frontend-design` (auto-detects DESIGN.md) |
 | Plan references a GitHub Issue | `reproduce-bug` |
+| Goal is measurable metric improvement | `ce-optimize` (iterative experiment loop with convergence) |
 
 ## Workflow
 

@@ -1,8 +1,0 @@
-{
-  "name": "dev",
-  "version": "1.0.0",
-  "description": "Thin orchestration layer for the 7-phase AI coding workflow, authored once and exposed through Codex-native dev-* skills.",
-  "author": {
-    "name": "agent-superpowers-kit"
-  }
-}

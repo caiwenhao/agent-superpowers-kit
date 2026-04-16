@@ -53,6 +53,13 @@ Analyze the conversation history and recent git activity to classify the trigger
 - `docs/solutions/` has files referencing deleted code paths
 - -> Route D: Refresh
 
+**Signal 6: Can an existing skill be improved?**
+- Same review finding (same category) appeared 3+ times in `learnings.jsonl`
+- Same friction point appears in consecutive retro reports
+- Upstream submodule (compound-engineering / superpowers / gstack) has new capabilities
+- A skill references a tool/skill name that no longer exists
+- -> Route E: Skill improvement
+
 ## Routing
 
 ```
@@ -71,6 +78,11 @@ Completed work
   |
   +-- [Knowledge stale] ----------> Route D: /ce:compound-refresh
   |   "outdated", "contradicts"      -> Updated/merged/deleted docs
+  |
+  +-- [Skill improvable] ---------> Route E: superpowers:writing-skills (REFACTOR)
+  |   repeated findings,             -> Updated SKILL.md + workflow doc
+  |   upstream new capabilities,
+  |   process friction
   |
   +-- [Nothing novel] ------------> SKIP Phase 7 -> /dev:discover (next item)
 ```
@@ -107,6 +119,14 @@ Completed work
    **Route D: `/ce:compound-refresh`** (knowledge maintenance)
    - Classify each doc: Keep / Update / Consolidate / Replace / Delete
    - Evidence-based: check if referenced files still exist
+
+   **Route E: `superpowers:writing-skills`** (skill improvement, REFACTOR mode)
+   - Analyze gap: which route/rule/signal is missing or outdated
+   - For upstream updates: read new SKILL.md/changelog, judge impact on dev:* routing
+   - For repeated findings: aggregate from `learnings.jsonl`, locate missing detection signal
+   - For friction: trace retro friction points to specific Phase's Scene Detection
+   - Update SKILL.md + `docs/ai-coding-workflow.md` in sync
+   - Verify: improved skill routes correctly on historical cases from retro
 
 3. **Verify knowledge is discoverable**
    - `docs/solutions/`: YAML frontmatter searchable? `AGENTS.md`/`CLAUDE.md` points to it?

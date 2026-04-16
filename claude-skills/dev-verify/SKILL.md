@@ -32,6 +32,7 @@ Position in workflow: Phase 4 (code) -> **Phase 5** -> Phase 6 (delivery)
 
 **Always-on (every review, no detection needed):**
 - correctness, testing, maintainability, project-standards, agent-native, learnings
+- **Cross-model adversarial**: Claude + Codex always dispatched in parallel; large diffs (200+ lines) add Codex structured P1 gate
 
 **Auto-detected by diff content:**
 
@@ -59,6 +60,7 @@ Position in workflow: Phase 4 (code) -> **Phase 5** -> Phase 6 (delivery)
 | Diff touches `prompt`, `llm`, `ai`, `openai`, `anthropic` | `gstack/review` (LLM trust boundary) |
 | Diff touches hot API paths, rendering loops, `*.sql` | `gstack/benchmark` (Core Web Vitals) |
 | Diff touches `README`, `docs/`, `CONTRIBUTING`, CLI help text | `gstack/devex-review` |
+| AI-generated code quality patterns detected | `slop-scan` (informational, non-blocking) |
 
 ## Workflow
 
