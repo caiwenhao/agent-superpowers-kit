@@ -40,7 +40,7 @@
 
 | 信号 | 检测方式 | 路由结果 |
 |---|---|---|
-| Signal 0: 是否在工作区 | `git worktree list` | 不在 -> 先创建 worktree |
+| Signal 0: 是否在任务专属工作区 | `git rev-parse --abbrev-ref HEAD` + `git worktree list` | 在 main/master 或未进入任务专属 worktree -> 调用 `compound-engineering:git-worktree`（或 `superpowers:using-git-worktrees`）先创建工作区，再进入任何 Phase |
 | Signal 1: 有无未完成工作 | plan status + git status + PR | 恢复到中断的阶段 |
 | Signal 2: 用户输入了什么 | 意图分类 | 路由到匹配阶段 |
 | Signal 3: 存在哪些产物 | 扫描 docs/ + DESIGN.md + .context/ | 跳到最近的未完成阶段 |
@@ -257,8 +257,8 @@ ce:work (自动检测策略)
     |
     v
 每个任务内部：
-    实现 -> Test Discovery -> System-Wide Test Check -> 增量提交
-    每 2-3 单元: Simplify 通道（跨单元去重）
+    实现 -> Test Discovery -> System-Wide Test Check -> 暂存变更（git add，不 commit）
+    每 2-3 单元: Simplify 通道（跨单元去重，仍不 commit）
     |
     v
 内嵌 ce:review mode:autofix (快速 safe_auto 修复, 最多 2 轮)
@@ -275,15 +275,42 @@ ce:work (自动检测策略)
 | Implementation Unit 标记 `external-delegate` | Codex 委托模式 (`ce:work-beta`) |
 | 运行时遇到 bug | `ce-debug`（因果链门控 4 阶段）/ `investigate` |
 | 多个独立测试失败 | `dispatching-parallel-agents` |
-| 触碰 `views/`, `components/`, `*.tsx`, `*.css` | `frontend-design`（自动检测 DESIGN.md） |
-| Plan 引用 GitHub Issue | `reproduce-bug` |
+| 触碰 `views/`, `components/`, `*.tsx`, `*.css` | `frontend-design`（自动检测 DESIGN.md） + `dev-browser`（启动 dev server 后真机验证 golden path） |
+| Plan 引用 GitHub Issue | `reproduce-bug`（涉及 UI 复现时叠加 `dev-browser`） |
 | 目标为可度量指标优化（prompt/性能/搜索质量） | `ce-optimize`（实验循环 + 度量收敛） |
+
+### Phase 4 → Phase 5 过渡关：`/simplify`
+
+所有 Unit 完成、准备进入 Phase 5 前，默认手动调用一次 `/simplify`——它并行派三个 agent（复用 / 质量 / 效率）扫整个累积 diff 并直接修复：
+
+| Agent | 抓什么 |
+|---|---|
+| **Agent 1: 复用** | 新写的代码是否有现成 util / helper 可替换；内联手写的字符串/路径处理/类型守卫是否有已有函数 |
+| **Agent 2: 质量** | 冗余 state、参数堆砌、复制粘贴微变、泄漏抽象、stringly-typed、无用 JSX 嵌套、无用注释（解释 WHAT 而非 WHY） |
+| **Agent 3: 效率** | 重复计算、可并行化的串行 I/O、热路径臃肿、轮询里无变更检测的 no-op 更新、TOCTOU 前置 exists 检查、无界内存、过度读取 |
+
+**调用时机**：
+
+- ✅ 所有 Unit 完成、Phase 4 收尾时（**默认**）
+- ✅ 中途某个 Unit 改动量大 / 重构密集 / 引入新抽象时可选插一次
+- ❌ 每个 Unit 都跑（太频繁，`ce:work` 已自动每 2-3 Unit 做内置 simplify pass）
+- ❌ `ce:review` 完成后再跑（维度重叠）
+
+**与 `ce:work` 内置 simplify pass 的区别**：
+
+| | ce:work 内置 | 手动 `/simplify` |
+|---|---|---|
+| 频率 | 每 2-3 Unit 自动 | Phase 4 收尾一次 |
+| 扫描范围 | 跨单元去重 | 完整累积 diff 三维（复用/质量/效率） |
+| 执行方式 | 单 agent 串行 | 三 agent 并行 |
+| 修复策略 | 保守去重 | 直接修 + 跳过 false positive |
 
 ### 铁律
 
 - **无失败测试，不写生产代码**
 - **无根因分析，不尝试修复**
 - **3 次修复失败，停下质疑架构**
+- **不主动提交** —— Phase 4 结束时变更可能 staged 或 unstaged，但绝不自动创建 commit；提交在 Phase 6 由用户触发
 
 ---
 
@@ -330,8 +357,8 @@ safe_auto 自动修复 -> gated_auto/manual 交用户 -> 残余写入 todo
     v
 dev:verify 自动叠加额外层:
     |
-    +-- diff 涉及 views/components/css   -> test-browser (受影响路由)
-    +-- 5+ UI 文件跨多页变更             -> gstack/qa (全站) + design-review
+    +-- diff 涉及 views/components/css   -> test-browser (受影响路由) | `dev-browser`（轻量 stdin 脚本，跨 harness 通用）
+    +-- 5+ UI 文件跨多页变更             -> gstack/qa (全站) + design-review | `dev-browser`（脚本化遍历多页路由）
     +-- diff 涉及 auth/payment/secret    -> gstack/cso (OWASP + STRIDE)
     +-- diff 涉及 prompt/llm/ai          -> gstack/review (LLM 信任边界)
     +-- diff 涉及热 API/SQL              -> gstack/benchmark (性能基线)
@@ -411,8 +438,44 @@ ship (合并基准分支 -> 测试 -> 覆盖率审计 60%/80% -> 计划完成度
 
 - 自动检测部署平台（Fly.io / Vercel / Render / Netlify / Heroku / GitHub Actions）
 - 合并前就绪报告（最后人工关卡）
-- 金丝雀验证按 diff 范围分级：docs 跳过、config smoke、backend 控制台、frontend 全量
+- 金丝雀验证按 diff 范围分级：docs 跳过、config smoke、backend 控制台、frontend 全量（frontend 优先用 `dev-browser --headless` + Playwright API 脚本验证关键路由 / 表单 / 控制台无 error）
 - 每个失败点提供回滚选项
+
+---
+
+## 浏览器自动化工具选择（贯穿 Phase 4/5/6）
+
+涉及 UI 验证、QA 测试、金丝雀检查时的工具优先级：
+
+| 场景 | 推荐工具 | 理由 |
+|---|---|---|
+| **本地启动 dev server 后跑 golden path / 表单 / 控制台无 error**（Phase 4 收尾、Phase 5 PR 前自检） | **`dev-browser`** | 单二进制 CLI，stdin 接 JS 脚本，QuickJS 沙箱内调用 Playwright API；跨 harness 通用（Claude Code / Codex / 任意 shell）；自动 attach 已开 Chrome 或 launch Chromium |
+| 受影响路由的回归用例（Phase 5 自动叠加） | `test-browser`（gstack） | 与 ce:review 联动产生结构化报告 |
+| 全站 QA 与 bug 修复闭环（Phase 5，5+ UI 文件） | `gstack/qa` | 报告 + 自动修复 + 重验证一体；浏览器层用 dev-browser 也可作 fallback |
+| 视觉 / 设计回归 | `design-review`（gstack） | 截图对比 + 严重性评分 |
+| 部署后金丝雀（Phase 6） | `dev-browser` 脚本 + `gstack-canary` 长期监控 | dev-browser 一次性烟测，gstack-canary 持续观测 |
+
+### dev-browser 调用约定
+
+```bash
+# 安装一次（pre-approve in .claude/settings.json: "Bash(dev-browser *)"）
+npm install -g dev-browser && dev-browser install
+
+# 标准调用：stdin 传脚本
+dev-browser --headless <<'EOF'
+const page = await browser.getPage("main");
+await page.goto("http://localhost:3000/login", { waitUntil: "domcontentloaded" });
+await page.fill('input[name="email"]', "test@example.com");
+await page.click('button[type="submit"]');
+console.log(await page.title());
+await page.screenshot({ path: "/tmp/after-login.png" });
+EOF
+
+# 连接已开 Chrome（保留登录态、跨脚本持久化页面）
+dev-browser --connect <<'EOF' ...
+```
+
+**何时不用 dev-browser**：需要与 ce:review / gstack 报告管线集成时优先 `test-browser` / `gstack/qa`；纯 MCP 工作流可继续用 Playwright MCP。dev-browser 的优势是**轻量 + 跨 harness + 沙箱安全**，适合作为 Phase 4-6 的默认 UI 验证刀。
 
 ---
 
@@ -686,7 +749,7 @@ ce:plan -> GATE -> ce:work -> GATE -> ce:review(autofix) -> todo-resolve -> test
 
 ---
 
-## 五条铁律（贯穿全流程）
+## 七条铁律（贯穿全流程）
 
 | # | 铁律 | 守护技能 |
 |---|---|---|
@@ -695,6 +758,55 @@ ce:plan -> GATE -> ce:work -> GATE -> ce:review(autofix) -> todo-resolve -> test
 | 3 | **根因先于修复** -- 不理解为什么坏就不能修 | systematic-debugging, investigate |
 | 4 | **证据先于断言** -- 没跑命令不能说"通过了" | verification-before-completion |
 | 5 | **验证先于采纳** -- 审查反馈先验证再实现 | receiving-code-review |
+| 6 | **工作区先于工作** -- 创建任何文档或代码前必须在任务专属 worktree / feature branch 中，否则先创建工作区 | dev:flow Signal 0, compound-engineering:git-worktree, superpowers:using-git-worktrees |
+| 7 | **提交由用户触发** -- AI 在 Phase 1-5 只修改文件、运行测试，不主动 `git commit` / `git push` / 创建 PR；提交仅在用户显式调用 `/dev:ship` 或说"提交/commit/push/PR"时进行 | dev:ship, ce:git-commit-push-pr, gstack-ship |
+
+---
+
+## 编码行为约束（贯穿 Phase 4-5）
+
+> 七条铁律管**流程**，本节管**行为**。源自 Karpathy 对 LLM 编码常见陷阱的观察，仅提取现有流程未覆盖的增量约束（#2 Simplicity 由 `/simplify` 覆盖，#4 Goal-Driven 由 R-ID + TDD 覆盖，不重复）。
+
+### 1. 明确假设 / 不懂就问（Think Before Coding）
+
+- 开始实现前，**显式列出你做出的关键假设**（数据结构、调用方、错误模式、性能预期）；假设错了，代码全错。
+- 需求有**多种合理解释**时，列出来让用户选，**不要静默挑一个**。
+- **不确定就 STOP 问**，不要靠猜继续。标注"我不清楚 X"比写错一百行再重写便宜。
+- 存在更简单的方案时**说出来**；用户让你做 A，你看出 B 更简单，先讲 B 再让用户决定。
+
+### 1a. 澄清时必须带"推荐标识"
+
+调用澄清工具（`AskUserQuestion` 等）向用户提问时，**必须显式标注推荐项**：
+
+- 有明确倾向时：推荐项**排第一**，标签末尾加 `(Recommended)` 或`（推荐）`。
+- 无明确倾向时：明说"无明确推荐，请你决定"，**不要伪装中立**。
+- 每个选项给一句 `description` 讲清楚**选它的后果**（不是选项的重复），便于用户判断。
+- 多选场景（`multiSelect: true`）：推荐组合在问题本文中先点出（"推荐勾选 A+B"），选项 label 保持描述性。
+
+**反面示例**：四个选项看起来都一样严肃，用户无从判断；或者你心里明明有倾向却假装所有选项等权——这会把决策压力非对称地转嫁给用户，违反"显式沟通"原则。
+
+### 2. 手术刀修改（Surgical Changes）
+
+- **只改和任务直接相关的行**；每一行改动都应该能直接追溯到用户请求或计划 Implementation Unit。
+- **不顺手"改进"相邻代码 / 注释 / 格式**——即使你确信自己的风格更好。
+- **匹配现有代码风格**，即使你不认同；风格统一的价值大于个人偏好。
+- 发现与任务**无关的 dead code**：**只提及，不删除**；留给独立清理任务处理。
+
+### 3. 孤儿清理（Orphan Cleanup）
+
+- 清理**你自己的改动**产生的未使用 import / 变量 / 函数。
+- **不清理原有的** dead code / legacy 残留，除非任务明确要求。
+- 区分标准：孤儿是不是**因为你这次改动**才变成孤儿的？是 → 清；否 → 留。
+
+### 自检问题（Phase 4 收尾 + Phase 5 审查时用）
+
+- 每一行改动能直接对应 R-ID 或 Implementation Unit 吗？
+- 我是否在用户没要求的地方加了"灵活性" / "可配置性" / "防御性错误处理"？
+- 我改动的相邻代码是否被我"顺手改进"了？
+- 我是否删除了不是我的改动产生的 dead code？
+- 我是否在不确定时静默选了一个方向而不是问用户？
+
+任何一个"是"→ 回滚相关改动，或在 `/simplify` 时专门清扫。
 
 ---
 

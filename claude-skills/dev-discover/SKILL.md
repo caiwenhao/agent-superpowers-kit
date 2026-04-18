@@ -8,8 +8,9 @@ description: "Use when starting any new work: a feature idea, vague request, pro
 ## 通用规则
 
 1. **始终用中文与用户交流。** 所有状态报告、GATE 提示、路由宣告均使用中文。
-2. **工作区检查优先。** 创建文档前确认在 worktree/feature branch 中，否则先创建工作区。
-3. **Review 多轮循环。** `document-review` 执行"审查->修复->再审查"循环，直到零 P0/P1 或达到 3 轮上限。
+2. **工作区前置（强制）。** 在创建任何文档或代码之前，执行 `git rev-parse --abbrev-ref HEAD` 检查当前分支。若在 main/master 或未进入任务专属 worktree，STOP 并调用 `compound-engineering:git-worktree`（或 `superpowers:using-git-worktrees`）创建工作区后再继续。
+3. **提交由用户触发。** 本阶段只写文件、运行只读命令，不执行 `git commit` / `git push` / 创建 PR。提交动作只在 `/dev:ship`（Phase 6）由用户显式触发。
+4. **Review 多轮循环。** `document-review` 执行"审查->修复->再审查"循环，直到零 P0/P1 或达到 3 轮上限。
 
 ## Overview
 

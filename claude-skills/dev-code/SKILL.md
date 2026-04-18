@@ -8,8 +8,9 @@ description: "Use when a reviewed plan exists and it is time to write code. Rout
 ## 通用规则
 
 1. **始终用中文与用户交流。** 所有状态报告、GATE 提示均使用中文。
-2. **工作区检查优先。** 开始写代码前确认在 worktree/feature branch 中，否则先创建工作区。
-3. **Review 多轮循环。** 内嵌的 `ce:review mode:autofix` 执行多轮循环（最多 2 轮 bounded re-review）。
+2. **工作区前置（强制）。** 开始写代码前执行 `git rev-parse --abbrev-ref HEAD` 检查当前分支。若在 main/master 或未进入任务专属 worktree，STOP 并调用 `compound-engineering:git-worktree`（或 `superpowers:using-git-worktrees`）创建工作区后再继续。
+3. **提交由用户触发。** Phase 4 只做文件修改、运行测试、必要时 `git add` 暂存，**不执行** `git commit` / `git push` / 创建 PR。提交仅在 `/dev:ship`（Phase 6）由用户显式触发。
+4. **Review 多轮循环。** 内嵌的 `ce:review mode:autofix` 执行多轮循环（最多 2 轮 bounded re-review）。
 
 ## Overview
 
@@ -52,8 +53,8 @@ Position in workflow: Phase 3 (planning) -> **Phase 4** -> Phase 5 (verification
 | Implementation Unit has `Execution note: external-delegate` | Codex delegation mode |
 | Bug encountered during implementation | `ce-debug` (causal-chain-gated, 4-phase) / `investigate` |
 | Multiple independent test failures | `dispatching-parallel-agents` |
-| Files in `views/`, `components/`, `*.tsx`, `*.css` touched | `frontend-design` (auto-detects DESIGN.md) |
-| Plan references a GitHub Issue | `reproduce-bug` |
+| Files in `views/`, `components/`, `*.tsx`, `*.css` touched | `frontend-design` (auto-detects DESIGN.md) + **`dev-browser`** (启动 dev server 后真机验证 golden path、表单、控制台无 error) |
+| Plan references a GitHub Issue | `reproduce-bug` (UI 复现时叠加 `dev-browser`) |
 | Goal is measurable metric improvement | `ce-optimize` (iterative experiment loop with convergence) |
 
 ## Workflow
@@ -64,8 +65,8 @@ Position in workflow: Phase 3 (planning) -> **Phase 4** -> Phase 5 (verification
    - "计划 Unit 3 标记为 test-first -- 该单元使用 TDD。"
 
 2. **`ce:work` executes** with auto-selected strategy
-   - Per task: Implement -> Test Discovery -> System-Wide Test Check -> Incremental commit
-   - Every 2-3 units: Simplify pass (cross-unit dedup)
+   - Per task: Implement -> Test Discovery -> System-Wide Test Check -> 暂存变更（可 `git add`，**不 commit**）
+   - Every 2-3 units: Simplify pass (cross-unit dedup, still no commit)
 
 3. **REVIEW: `ce:review mode:autofix` 多轮循环** (内嵌在 `ce:work` Phase 3)
    - Tier 2 (default): 20+ persona 并行审查, safe_auto 修复, R-ID 追溯
@@ -73,16 +74,22 @@ Position in workflow: Phase 3 (planning) -> **Phase 4** -> Phase 5 (verification
    - 传入 `plan:<path>` 用于需求追溯验证
    - **循环**: 修复 -> 再审查，最多 2 轮 bounded re-review（Phase 4 是快速 autofix 通道，比 Phase 5 的 3 轮上限更紧凑）
 
-   **GATE: 所有任务完成。测试通过。审查已应用。残余 todo 已记录。**
+4. **Phase 4 → Phase 5 过渡关：`/simplify`（默认手动调用一次）**
+   - 所有 Unit 完成后、进入 `/dev:verify` 之前，调用 `/simplify`
+   - 三 agent 并行扫整个累积 diff：复用（找已有 util 替换）/ 质量（冗余 state、参数堆砌、复制粘贴、stringly-typed、无用注释）/ 效率（重复计算、可并行化串行、热路径臃肿、no-op 更新、TOCTOU、内存泄漏）
+   - 直接修复发现的问题，false positive 跳过不争论
+   - **跳过条件**: diff < 10 行 trivial 改动 / 仅文档变更 / 中途某 Unit 已单独跑过且后续无重大新增
 
-4. **Next**: `/dev:verify` (Phase 5)
+   **GATE: 所有任务完成。测试通过。审查已应用。`/simplify` 已扫过。残余 todo 已记录。**
+
+5. **Next**: `/dev:verify` (Phase 5)
 
 ## Inputs / Outputs
 
 | | Value |
 |---|---|
 | **Input** | Plan file path from Phase 3 (or bare prompt for small work) |
-| **Output** | Committed code, passing tests, ce:review autofix applied |
+| **Output** | 已修改的代码 + 通过的测试 + ce:review autofix 已应用 + `/simplify` 已扫过（**未 commit**，工作树留有变更） |
 | **Next** | `/dev:verify` (Phase 5) |
 
 ## Iron Laws
@@ -90,3 +97,14 @@ Position in workflow: Phase 3 (planning) -> **Phase 4** -> Phase 5 (verification
 - **No failing test, no production code**
 - **No root cause, no fix**
 - **3 fix failures: stop and question the architecture**
+- **不主动提交** —— commit / push / PR 仅在 `/dev:ship` 中由用户触发；本阶段产出未提交的工作树变更
+
+## 编码行为约束（本阶段强制）
+
+实现过程中必须遵循以下行为约束（完整规则见 `docs/ai-coding-workflow.md`）：
+
+- **明确假设 / 不懂就问**：写代码前列出关键假设；需求有多解释时列出让用户选；不确定 STOP 问；更简单方案主动提出。**调用澄清工具时必须带推荐标识**——推荐项排第一并标 `(Recommended)`；无倾向时明说"无明确推荐"，不伪装中立。
+- **手术刀修改**：只改任务直接相关的行，每行能追溯到 Implementation Unit 或用户请求；不顺手改相邻代码/注释/格式；匹配现有风格；发现无关 dead code 只提及不删除。
+- **孤儿清理**：仅清理本次改动产生的未使用 import/变量；不动原有 dead code。
+
+**Phase 4 收尾自检（`/simplify` 之前）**：每行改动可追溯？有无添加未请求的灵活性？相邻代码有无被顺手改？有无删除非本次产生的 dead code？有无静默选方向而非问用户？任一"是" → 回滚或 `/simplify` 时清扫。

@@ -8,8 +8,9 @@ description: "Use when Phase 5 has passed and code is ready to deliver. Detects 
 ## 通用规则
 
 1. **始终用中文与用户交流。** 所有状态报告、GATE 提示、路由宣告均使用中文。
-2. **工作区检查。** 确认在正确的 feature branch 上，避免在主分支直接提交。
-3. **Review 多轮循环。** Path B 中 `gstack/ship` 的 pre-landing review 和 adversarial review 执行多轮循环。
+2. **工作区前置（强制）。** 执行 `git rev-parse --abbrev-ref HEAD` 检查当前分支。若在 main/master 或未进入任务专属 worktree，STOP 并要求用户先创建/切换到 feature branch；禁止在主分支直接 commit/push。
+3. **提交由用户显式触发。** 前置阶段（Phase 1-5）绝不主动 commit/push/PR。本阶段（Phase 6）是**唯一**可以 commit/push/创建 PR 的阶段，且要求用户已显式调用 `/dev:ship` 或明确说"提交/commit/push/PR/上线"；每个关键写操作（commit / push / PR / merge / deploy）之前再次以 GATE 向用户确认。
+4. **Review 多轮循环。** Path B 中 `gstack/ship` 的 pre-landing review 和 adversarial review 执行多轮循环。
 
 ## Overview
 
@@ -39,7 +40,7 @@ Position in workflow: Phase 5 (verify) -> **Phase 6** -> Phase 7 (knowledge)
 - Unresolved review threads exist -> prepend `resolve-pr-feedback`
 
 **Signal 4: UI changes in diff?**
-- Scan diff for `views/`, `components/`, `*.tsx`, `*.css`, `*.html` -> add `feature-video`
+- Scan diff for `views/`, `components/`, `*.tsx`, `*.css`, `*.html` -> add `feature-video` + 部署后 `dev-browser` 烟测（关键路由 + 控制台无 error）
 
 ## Routing
 
@@ -109,7 +110,7 @@ Verified code (from Phase 5)
 4. **`land-and-deploy` auto-detects** deployment platform and canary depth:
    - Platform: from `fly.toml` / `vercel.json` / `render.yaml` / `Procfile` / GitHub Actions
    - **Greenfield 检测**: 如果没有任何部署配置文件，宣告："未检测到部署配置 -- 运行 `/gstack-setup-deploy` 创建部署设置。" 先配置再部署。
-   - Canary depth by diff type: docs->skip, config->smoke, backend->console, frontend->full
+   - Canary depth by diff type: docs->skip, config->smoke, backend->console, frontend->full（frontend 全量优先用 `dev-browser --headless` + Playwright API 脚本跑关键路由 + 表单 + 控制台 error 检查）
 
    **GATE: Merge-readiness report shown to user. User confirms before merge.**
 

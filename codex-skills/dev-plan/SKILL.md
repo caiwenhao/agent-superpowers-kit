@@ -1,1 +1,0 @@
-../../claude-skills/dev-plan/SKILL.md

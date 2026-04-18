@@ -1,1 +1,0 @@
-../../claude-skills/dev-learn/SKILL.md

@@ -8,8 +8,9 @@ description: "Use when starting any development task, or when unsure which dev: 
 ## 通用规则
 
 1. **始终用中文与用户交流。** 所有状态报告、GATE 提示、路由宣告、错误信息均使用中文。技能名称、文件路径、代码保持英文原样。
-2. **工作区检查优先。** 在创建任何文档或代码之前，必须确认当前是否在 git worktree 中。如果不在，先创建工作区（调用 `compound-engineering:git-worktree` 或 `superpowers:using-git-worktrees`），再开始工作。
-3. **Review 采取多轮循环。** 所有涉及 review 的环节（document-review、ce:review、plan-eng-review 等），执行"审查 -> 修复 -> 再审查"循环，直到：(a) 零 P0/P1 发现，或 (b) 达到最大轮次（默认 3 轮），或 (c) 连续两轮发现相同问题（收敛）。
+2. **工作区前置（强制）。** 在创建任何文档或代码之前，必须确认当前在任务专属 git worktree / feature branch 中。若在 main/master 或分支与当前任务不匹配，STOP 并调用 `compound-engineering:git-worktree`（Codex 环境使用 `superpowers:using-git-worktrees`）创建工作区后再继续。用户拒绝创建时，STOP 并要求显式确认"在当前分支继续"。
+3. **提交由用户触发。** Phase 1-5 只修改文件、运行测试，不执行 `git commit` / `git push` / 创建 PR。每个 GATE 结束时不提交；提交仅发生在 Phase 6 `/dev:ship` 由用户显式触发。
+4. **Review 采取多轮循环。** 所有涉及 review 的环节（document-review、ce:review、plan-eng-review 等），执行"审查 -> 修复 -> 再审查"循环，直到：(a) 零 P0/P1 发现，或 (b) 达到最大轮次（默认 3 轮），或 (c) 连续两轮发现相同问题（收敛）。
 
 ## Overview
 
@@ -33,19 +34,22 @@ You do not need to call individual `dev:*` skills manually. `dev:flow` detects a
 
 On invocation, check these signals **in order** to determine which phase to enter:
 
-### Signal 0: Are we in a worktree?
+### Signal 0: Are we in a task-scoped worktree?
 
 ```bash
-# Check if currently in a git worktree
+# Check repo + current branch + worktree list
 git rev-parse --is-inside-work-tree 2>/dev/null && echo "GIT: yes" || echo "GIT: no"
+git rev-parse --abbrev-ref HEAD
 git worktree list 2>/dev/null | head -5
 ```
 
 | Finding | Action |
 |---|---|
 | Not in a git repo | STOP: "当前不在 git 仓库中，无法启动研发流程。" |
-| In main/master branch, no worktree | 创建工作区: "当前在主分支，需要创建工作区以隔离开发。" -> 调用 `compound-engineering:git-worktree` |
-| Already in a feature branch or worktree | 继续 Signal 1 |
+| On main/master | STOP: "当前在主分支。调用 `compound-engineering:git-worktree` 创建任务专属工作区。"（Codex 环境回退到 `superpowers:using-git-worktrees`） |
+| On a branch but not a task-scoped worktree (分支名与当前任务不匹配 / 共享分支多任务) | STOP: "当前分支与本任务不匹配。调用 `compound-engineering:git-worktree` 创建独立工作区。" |
+| User refuses to create a worktree | STOP: "需要用户显式确认 `在当前分支继续` 才能跳过工作区前置。" |
+| Already in task-scoped worktree / feature branch | 继续 Signal 1 |
 
 ### Signal 1: Is there unfinished work from a previous session?
 
@@ -314,3 +318,15 @@ Phase 7 (/dev:learn):
 3. **Root cause before fix** -- no fix without understanding why
 4. **Evidence before assertion** -- no "it works" without proof
 5. **Verify before adopt** -- no review feedback accepted without verification
+6. **Worktree before work** -- 每次创建文档或代码前必须在任务专属 worktree/feature branch 中
+7. **Commit only on user trigger** -- Phase 1-5 不主动 commit/push/PR；提交仅在 `/dev:ship` 由用户显式触发
+
+## 编码行为约束（贯穿 Phase 4-5）
+
+七条铁律管**流程**，本节管**行为**。Phase 4 实现、Phase 5 审查时必须遵循：
+
+- **明确假设 / 不懂就问**：实现前列出关键假设；多解释时让用户选，不要静默挑一个；不确定就 STOP 问；更简单方案主动说出来。**调用澄清工具时必须带推荐标识**——推荐项排第一并标 `(Recommended)`；无倾向时明说"无明确推荐"，不伪装中立。
+- **手术刀修改**：只改任务直接相关的行；不顺手"改进"相邻代码/注释/格式；匹配现有风格即使你不认同；发现无关 dead code 只提及不删除。
+- **孤儿清理**：仅清理你这次改动产生的未使用 import/变量；不动原有 dead code。
+
+完整规则和 Phase 4 收尾自检清单见 `docs/ai-coding-workflow.md` 的"编码行为约束（贯穿 Phase 4-5）"节。

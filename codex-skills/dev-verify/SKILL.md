@@ -1,1 +1,0 @@
-../../claude-skills/dev-verify/SKILL.md

@@ -1,8 +1,0 @@
-{
-  "name": "dev",
-  "version": "1.0.0",
-  "description": "AI Coding 7-phase development workflow orchestrator: discover, design, plan, code, verify, ship, learn.",
-  "author": {
-    "name": "agent-superpowers-kit"
-  }
-}
