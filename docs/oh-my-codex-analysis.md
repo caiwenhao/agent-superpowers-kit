@@ -82,7 +82,7 @@ npm run build:sparkshell   # Shell CLI 包装
 npm run dev            # TypeScript watch 模式
 
 # 安装与验证
-npm run setup          # 安装技能到 .codex/skills/
+npm run setup          # 安装技能到 .agents/skills/
 npm run doctor         # 安装健康检查
 ```
 

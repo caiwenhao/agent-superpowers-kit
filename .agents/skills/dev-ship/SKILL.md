@@ -1,1 +1,1 @@
-../../../plugins/dev/skills/dev-ship/SKILL.md
+../../../claude-skills/dev-ship/SKILL.md

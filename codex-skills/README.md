@@ -17,17 +17,16 @@ This directory exposes the Codex-native `dev:*` phase suite defined from [docs/a
 
 ## Structure
 
-- `plugins/dev/skills/` is the authored source of truth.
+- `claude-skills/` is the authored source of truth.
 - `codex-skills/` is the human-facing bundle view requested for this repo.
-- `.codex/skills/` is the Codex runtime discovery path.
-- `.agents/skills/` remains the legacy compatibility mirror.
+- `.agents/skills/` is the repo-local Codex runtime discovery path.
 
 Each `codex-skills/<skill>/SKILL.md` file is a symlink to the canonical skill source, so updates stay single-source.
 
 ## Use
 
 - Browse this directory when you want the packaged Codex-facing workflow view.
-- Activate repo-local runtime discovery with `omx setup --scope project` or a `CODEX_HOME=./.codex` launch.
+- Activate repo-local runtime discovery with `omx setup --scope project`.
 - Invoke the suite through `$dev-flow` and the other `$dev-*` names; `dev:*` stays the public phase vocabulary.
 
 ## Contracts

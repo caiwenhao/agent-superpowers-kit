@@ -1,1 +1,1 @@
-../../../plugins/dev/skills/dev-code/SKILL.md
+../../../claude-skills/dev-code/SKILL.md

@@ -29,7 +29,7 @@ bash plugins/dev/tests/validate-runtime-smoke.sh
 
 Expected state:
 - `validate-frontmatter.sh` passes when skill descriptions stay concise, accept the repo's English-or-Chinese trigger prefixes, and avoid workflow-summary wording in both languages.
-- `validate-discovery.sh` passes when `.codex/skills/dev-*` discovery paths exist and point at the canonical skill files; `.agents/skills/` remains an optional legacy mirror.
+- `validate-discovery.sh` passes when `.agents/skills/dev-*` discovery paths exist and point at the canonical skill files.
 - `validate-bundle.sh` passes when `codex-skills/` exposes a complete human-facing bundle view with correct symlink targets.
 - `validate-trigger-fixtures.sh` passes when the repo's published Chinese trigger examples still map to the intended `dev-*` phase. This is a heuristic fixture test, not a full Codex runtime integration test.
 - `validate-phase-contract.sh` passes when required delegates, handoff markers, and Chinese status/gate rules are present in the phase skills.
