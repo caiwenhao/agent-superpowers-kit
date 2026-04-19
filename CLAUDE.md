@@ -13,7 +13,7 @@ There is no build, lint, or test target at the repo root. All "code" here is Mar
 | Path | Role |
 |---|---|
 | `claude-skills/` | **Single source of truth.** The 8 phase skills (`dev-discover`/`dev-design`/`dev-plan`/`dev-code`/`dev-verify`/`dev-ship`/`dev-learn`/`dev-flow`) plus utility skills `dev-init` (CLAUDE.md bootstrap) and `dev-doctor` (dependency health check). Always edit here. |
-| `.agents/skills/<name>/SKILL.md` | Codex/OMX runtime discovery path. Each entry is a **symlink** into `claude-skills/`. Never write real files here. |
+| `.agents/skills/<name>/SKILL.md` | Codex runtime discovery path. Each entry is a **symlink** into `claude-skills/`. Never write real files here. |
 | `.claude/skills/` | Claude Code runtime discovery path (may symlink to `claude-skills/`). |
 | `docs/ai-coding-workflow.md` | **Authoritative workflow design.** 7-phase routing logic, scene detection, GATE mechanism, 7 iron laws + 编码行为约束. Read before editing any `dev-*` skill. |
 | `docs/phase{1-7}-*-analysis.md` | Per-phase deep dives feeding the workflow doc. |

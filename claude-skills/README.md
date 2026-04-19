@@ -26,7 +26,7 @@ This directory is the **canonical source** for the 8-phase `dev:*` development w
 | Harness | Discovery path | Mechanism |
 |---|---|---|
 | Claude Code | `<proj>/.claude/skills/<name>/SKILL.md` | symlink into `claude-skills/` (or integral symlink of the whole directory) |
-| Codex / OMX | `<proj>/.agents/skills/<name>/SKILL.md` | per-skill symlink into `claude-skills/` |
+| Codex | `<proj>/.agents/skills/<name>/SKILL.md` | per-skill symlink into `claude-skills/` |
 
 Each runtime path's `SKILL.md` is a symlink to `claude-skills/<name>/SKILL.md`, keeping a single source.
 

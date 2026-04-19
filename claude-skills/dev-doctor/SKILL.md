@@ -40,7 +40,7 @@ description: "Use when starting work on this repo for the first time, after a fr
 | `gstack-<name>` | gstack plugin 技能（hyphen 形式） | `gstack-codex`, `gstack-qa` |
 | `gstack/<name>` | gstack plugin 技能（slash 遗留形式，也要检查） | `gstack/cso` |
 | `ce:<name>` / `ce-<name>` | CE 核心技能 | `ce:brainstorm`, `ce:plan` |
-| `dev-browser` 等 CLI | 命令行工具 | `dev-browser`, `omx`, `codex` |
+| `dev-browser` 等 CLI | 命令行工具 | `dev-browser`, `codex` |
 
 去重后得到完整依赖清单。
 
@@ -107,7 +107,7 @@ description: "Use when starting work on this repo for the first time, after a fr
    # CE 核心技能（ce: / ce- 前缀；要求后续至少 3 字符以避免 `ce-` 杂项词误匹配）
    grep -hoE '\bce[:-][a-z][a-z-]{2,}' claude-skills/*/SKILL.md
    # CLI 工具（白名单显式列出，避免吞掉所有连字符标识符）
-   grep -hoE '\b(dev-browser|omx|codex)\b' claude-skills/*/SKILL.md
+   grep -hoE '\b(dev-browser|codex)\b' claude-skills/*/SKILL.md
    ```
 
    合并、去重、按类型分组。
