@@ -19,8 +19,59 @@ description: "Use when dev-learn writes a new docs/solutions/*.md, after a retro
 - retro 报告写入后
 - 用户手动:"把这篇文章/paper/postmortem ingest 到 wiki"
 - 读完某个外部源(article/doc/URL)准备归档时
+- **批量场景**:仓库已有大量历史文档(`docs/`、`design/`、`postmortems/`),首次接入 wiki 时一次性迁移 → 走 **批量模式**(见下)
 
 **不适用**:日常 commit 信息、一次性讨论、无沉淀价值的会话记录(那是 dev-learn 判断的事,不是本技能)。
+
+## 批量模式(首次迁移历史文档专用)
+
+触发:用户传入**目录或 glob**(如 `docs/`、`design/**/*.md`)而非单文件路径。
+
+### 与单源模式的差异
+
+| 维度 | 单源 | 批量 |
+|---|---|---|
+| 输入 | 一个文件/URL | 目录/glob,展开成 N 个源 |
+| GATE 频率 | 1 次(整体清单) | **2 次**:首轮规划清单 + 每个批次前(可批准下一批) |
+| 一次写入页数 | 5-15 | **每个源仍 5-15**,但跨源累积可达数百页 |
+| 进度跟踪 | 不需要 | **需要** —— 必须维护 `wiki/_migration.md` checklist 文件 |
+| 可中断 | N/A | **必须**支持 —— 每处理 K 个源后 GATE,用户可暂停 |
+| 跨层传播询问 | 每源问 | **整批结束后统一问** —— 避免被打断 N 次 |
+
+### 批量 Workflow
+
+1. **展开输入**:把目录/glob 解析成具体文件列表,按文件大小(小的先,快速验证流程)或字母序排列
+2. **首轮规划**:
+   - 对每个源**只**抽取主题句和关键实体/概念(不展开成完整页面)
+   - 输出 `wiki/_migration.md`:
+     ```markdown
+     # Wiki Migration Plan
+     总源数: 47
+     已完成: 0 / 47
+
+     - [ ] docs/architecture.md → 主题"系统架构总览";命中实体: api-server, postgres, redis;命中概念: event-sourcing, cqrs
+     - [ ] docs/postmortems/2024-redis.md → 主题"2024 Redis 缓存击穿";命中实体: redis, cache-stampede
+     - [ ] ...
+     ```
+   - GATE:展示 `_migration.md`,询问 `按计划全量迁移 (Recommended) / 只跑前 5 个试点 / 调整顺序 / 只迁某个子目录 / 取消`
+3. **批处理**:
+   - 默认每批 5 个源,每批结束后:
+     - 更新 `_migration.md` 的 checkbox
+     - 显示"已完成 5/47,触动 wiki 页面 23 个"
+     - GATE:`继续下一批 (Recommended) / 暂停 / 调整批量大小 / 跳过下一个源`
+   - 用户暂停后,下次再调 `dev:wiki-ingest` 传同样目录,会**读 `_migration.md` 续跑**未完成项
+4. **去重处理**:跨源命中同一实体/概念页 → **同一页面累积**,不重复 create;追加段落标注源
+5. **冲突解决**:同一概念在两个源里描述矛盾 → 在 concept 页里**两段并列保留**,前缀标源,由用户事后调和(不静默选一个)
+6. **整批结束**:
+   - 删除/归档 `_migration.md` 到 `wiki/log.md`
+   - 统一 GATE 询问跨层传播:`将这批新增 wiki 中标记为'通用模式'的页面同步到 ~/.claude/wiki/?`
+
+### 批量模式 Iron Laws(单源规则之上额外的)
+
+- **可恢复**:中途任何时刻都能 ctrl-c 退出,`_migration.md` 是真实进度;再跑续传不重做已完成项
+- **小步快跑**:默认每批 5 个源,不一口气吞所有;允许用户随时暂停 review
+- **不删源**:迁移过程中绝不动 `docs/`、`design/` 等源目录的原文件;wiki 是**编译产物**,源永远是真理
+- **`_migration.md` 短命**:整批完成后从 wiki 根目录删除(只在 `log.md` 里留摘要);它是临时进度文件,不是 wiki 一等公民
 
 ## 路由判定:项目 wiki vs 全局 wiki
 
