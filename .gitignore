@@ -2,6 +2,9 @@
 .brv/
 .omx/
 
+# Task-scoped git worktrees (dev:* 工作区前置铁律统一落点)
+.worktrees/
+
 # External project sources (reference only)
 oh-my-codex/
 agent-skills/

@@ -39,7 +39,7 @@ These override generic coding practice. When in doubt, trust the skill body:
 3. **根因先于修复** — no fix without understanding why
 4. **证据先于断言** — no "it works" without running the command
 5. **验证先于采纳** — verify review feedback before implementing
-6. **工作区先于工作** — every `dev-*` phase starts by running `git rev-parse --abbrev-ref HEAD`; if on main/master or not in a task-scoped worktree, STOP and create one via `compound-engineering:git-worktree` (fallback `superpowers:using-git-worktrees`)
+6. **工作区先于工作** — every `dev-*` phase starts by running `git rev-parse --abbrev-ref HEAD`; if on main/master or not in a task-scoped worktree, STOP and create one via `compound-engineering:git-worktree` (fallback `superpowers:using-git-worktrees`). **约定位置:所有 worktree 必须创建在 `<repo>/.worktrees/<name>/`,统一一处,不散落到 `/tmp` 或兄弟目录。** `.worktrees/` 已在 `.gitignore`。
 7. **提交由用户触发** — Phases 1-5 and 7 never `git commit` / `git push` / create PRs; commits only happen in Phase 6 (`/dev:ship`) after explicit user request
 
 Rule 7 is strict: even when all tests pass and diffs look clean, leave changes staged/unstaged. The user triggers the commit.

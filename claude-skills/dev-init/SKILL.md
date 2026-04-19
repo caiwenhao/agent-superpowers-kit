@@ -96,7 +96,7 @@ done
 3. **根因先于修复** —— 不理解为什么坏就不能修
 4. **证据先于断言** —— 没跑命令不能说"通过了"
 5. **验证先于采纳** —— 审查反馈先验证再实现
-6. **工作区先于工作** —— 每次创建文档或代码前必须在任务专属 worktree / feature branch 中
+6. **工作区先于工作** —— 每次创建文档或代码前必须在任务专属 worktree / feature branch 中。**约定位置:所有 worktree 创建在 `<repo>/.worktrees/<name>/`(已在 `.gitignore`),不散落到 `/tmp` 或仓库兄弟目录**
 7. **提交由用户触发** —— Phase 1-5 和 7 不主动 `git commit` / `git push` / 创建 PR；提交仅在 Phase 6 `/dev:ship` 由用户显式触发
 
 ### 编码行为约束（贯穿 Phase 4-5）

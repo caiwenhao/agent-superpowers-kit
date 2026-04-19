@@ -46,10 +46,12 @@ git worktree list 2>/dev/null | head -5
 | Finding | Action |
 |---|---|
 | Not in a git repo | STOP: "当前不在 git 仓库中，无法启动研发流程。" |
-| On main/master | STOP: "当前在主分支。调用 `compound-engineering:git-worktree` 创建任务专属工作区。"（Codex 环境回退到 `superpowers:using-git-worktrees`） |
-| On a branch but not a task-scoped worktree (分支名与当前任务不匹配 / 共享分支多任务) | STOP: "当前分支与本任务不匹配。调用 `compound-engineering:git-worktree` 创建独立工作区。" |
+| On main/master | STOP: "当前在主分支。调用 `compound-engineering:git-worktree` 创建任务专属工作区,**路径必须在 `<repo>/.worktrees/<task-name>/`**。"(Codex 环境回退到 `superpowers:using-git-worktrees`) |
+| On a branch but not a task-scoped worktree (分支名与当前任务不匹配 / 共享分支多任务) | STOP: "当前分支与本任务不匹配。调用 `compound-engineering:git-worktree` 创建独立工作区,路径 `<repo>/.worktrees/<task-name>/`。" |
 | User refuses to create a worktree | STOP: "需要用户显式确认 `在当前分支继续` 才能跳过工作区前置。" |
 | Already in task-scoped worktree / feature branch | 继续 Signal 1 |
+
+> **worktree 统一落点约定**:所有 `dev:*` phase 创建的 worktree 必须放在 `<repo>/.worktrees/<name>/`(已在仓库 `.gitignore`)。禁止创建到 `/tmp`、`$HOME/worktrees`、或仓库兄弟目录——方便清理、方便发现、避免遗漏。调用 `compound-engineering:git-worktree` 时明确传该路径;该 skill 若默认位置不同,在 prompt 里覆盖它。
 
 ### Signal 1: Is there unfinished work from a previous session?
 
@@ -318,7 +320,7 @@ Phase 7 (/dev:learn):
 3. **Root cause before fix** -- no fix without understanding why
 4. **Evidence before assertion** -- no "it works" without proof
 5. **Verify before adopt** -- no review feedback accepted without verification
-6. **Worktree before work** -- 每次创建文档或代码前必须在任务专属 worktree/feature branch 中
+6. **Worktree before work** -- 每次创建文档或代码前必须在任务专属 worktree/feature branch 中,且**路径统一在 `<repo>/.worktrees/<name>/`**
 7. **Commit only on user trigger** -- Phase 1-5 不主动 commit/push/PR；提交仅在 `/dev:ship` 由用户显式触发
 
 ## 编码行为约束（贯穿 Phase 4-5）
