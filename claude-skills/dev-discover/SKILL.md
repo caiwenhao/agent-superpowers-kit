@@ -31,7 +31,7 @@ Position in workflow: **Phase 1** -> Phase 2 (design) or Phase 3 (planning)
 Analyze user input to classify intent. Check these signals in order:
 
 **Signal 0: Wiki Query (前置步骤)**
-- Search project `wiki/index.md` and global `~/.claude/wiki/index.md` for pages related to the user's topic
+- 调用 `/dev:wiki-search`,关键词来自用户 prompt;它会扫项目 `wiki/index.md` + 全局 `~/.claude/wiki/index.md` 并按相关性返回页面清单(只读 grep,无 LLM)
 - If relevant pages found -> read them and inject as brainstorm context
 - Announce (中文): "Wiki 中找到 N 篇相关页面，注入 brainstorm 上下文。" or "Wiki 中无相关知识。"
 - This step is informational — it enriches context but does not change routing

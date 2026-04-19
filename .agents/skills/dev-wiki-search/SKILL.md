@@ -1,0 +1,1 @@
+../../../claude-skills/dev-wiki-search/SKILL.md

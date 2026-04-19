@@ -139,19 +139,13 @@ Completed work
    - Verify: improved skill routes correctly on historical cases from retro
 
    **Route F: Wiki Ingest** (knowledge compilation)
-   - Read the source (article, doc, solution, retro output)
-   - Write/update a source summary page in `wiki/sources/`
-   - Update related entity pages (`wiki/entities/`) and concept pages (`wiki/concepts/`)
-   - A single ingest may touch 5-15 wiki pages
-   - Update `wiki/index.md` (add/update entry with link + one-line summary)
-   - Append to `wiki/log.md` (timestamp + operation + source + pages touched)
-   - If knowledge is cross-project generalizable: also ingest to `~/.claude/wiki/`
-   - Good query answers can be filed back as `wiki/synthesis/` pages
+   - 委托给 **`/dev:wiki-ingest`** —— 它负责抽取实体/概念/决策、规划页面改动、GATE 展示清单、写入 5-15 页、追加 log.md、跨层传播询问
+   - 本路由只负责把源路径(`docs/solutions/<file>.md` / retro 报告路径 / URL)传给 `dev:wiki-ingest`,具体编译逻辑在那边
 
 3. **Wiki Ingest (auto, after Route A and B)**
-   - After `ce:compound` writes `docs/solutions/*.md` -> auto-trigger Wiki Ingest for project wiki
-   - After `gstack-retro` completes -> auto-trigger Wiki Ingest for retro findings
-   - Announce (中文): "Solution 已写入 docs/solutions/。正在 ingest 到 wiki -- 更新了 N 个页面。"
+   - After `ce:compound` writes `docs/solutions/*.md` -> 自动调 `/dev:wiki-ingest` 处理项目 wiki
+   - After `gstack-retro` completes -> 自动调 `/dev:wiki-ingest` 处理 retro 发现
+   - Announce (中文): "Solution 已写入 docs/solutions/。委托 dev:wiki-ingest 编译进 wiki..."
 
 3. **Verify knowledge is discoverable**
    - `docs/solutions/`: YAML frontmatter searchable? `AGENTS.md`/`CLAUDE.md` points to it?

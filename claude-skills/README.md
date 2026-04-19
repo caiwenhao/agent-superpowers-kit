@@ -14,6 +14,10 @@ This directory is the **canonical source** for the 8-phase `dev:*` development w
 | 验证 | `dev-verify` | `ce:review` (+ `test-browser` / `dev-browser` / `qa` / `design-review` / `cso` / `benchmark`) |
 | 交付 | `dev-ship` | `git-commit-push-pr` or `ship`, then `land-and-deploy` (+ `dev-browser` canary 烟测) |
 | 沉淀 | `dev-learn` | `ce:compound` / `retro` / `ce:compound-refresh` / `writing-skills` |
+| 初始化 | `dev-init` | 写 CLAUDE.md preamble + 建 AGENTS.md 软链 + 迁移仓库级技能目录到 cross-harness 双软链布局,收尾调 dev:doctor |
+| 诊断 | `dev-doctor` | 扫描下游依赖安装状态(Claude Code + Codex 两侧路径),报告缺失 + phase 降级评估(只读) |
+| Wiki 查询 | `dev-wiki-search` | grep-based 双层 wiki 查询(项目 wiki + ~/.claude/wiki),供 discover/plan 注入已有知识(只读,无 LLM) |
+| Wiki 编译 | `dev-wiki-ingest` | 把 docs/solutions/ retro 报告 / 外部源编译进 wiki(5-15 页/次),源不可变,带 GATE |
 
 ## Discovery Paths
 

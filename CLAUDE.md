@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is
 
-A **skill library**, not an application. It authors an 8-skill `dev:*` orchestration layer that routes through a 7-phase AI coding workflow (discover → design → plan → code → verify → ship → learn), built on top of four upstream skill libraries vendored in-tree as reference sources.
+A **skill library**, not an application. It authors a `dev:*` orchestration layer (8 phase skills + 2 utility skills: `dev-init` for bootstrap and `dev-doctor` for diagnosis) that routes through a 7-phase AI coding workflow (discover → design → plan → code → verify → ship → learn), built on top of four upstream skill libraries vendored in-tree as reference sources.
 
 There is no build, lint, or test target at the repo root. All "code" here is Markdown (`SKILL.md` files + design docs). `install-skills.sh` is a one-liner that lists discovered `SKILL.md` paths.
 
@@ -12,7 +12,7 @@ There is no build, lint, or test target at the repo root. All "code" here is Mar
 
 | Path | Role |
 |---|---|
-| `claude-skills/` | **Single source of truth.** The 8 authored `dev-*/SKILL.md` files. Always edit here. |
+| `claude-skills/` | **Single source of truth.** The 8 phase skills (`dev-discover`/`dev-design`/`dev-plan`/`dev-code`/`dev-verify`/`dev-ship`/`dev-learn`/`dev-flow`) plus utility skills `dev-init` (CLAUDE.md bootstrap) and `dev-doctor` (dependency health check). Always edit here. |
 | `.agents/skills/<name>/SKILL.md` | Codex/OMX runtime discovery path. Each entry is a **symlink** into `claude-skills/`. Never write real files here. |
 | `.claude/skills/` | Claude Code runtime discovery path (may symlink to `claude-skills/`). |
 | `docs/ai-coding-workflow.md` | **Authoritative workflow design.** 7-phase routing logic, scene detection, GATE mechanism, 7 iron laws + 编码行为约束. Read before editing any `dev-*` skill. |

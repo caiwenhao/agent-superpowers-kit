@@ -76,8 +76,8 @@ Plan created by ce:plan
    - "无已有计划 -- 从需求文档创建。"
 
 2. **Run `/ce:plan`** with requirements doc path
-   - Parallel research: repo-research, learnings, best-practices, framework-docs, **wiki-search**
-   - **Wiki Query**: search project `wiki/index.md` + global `~/.claude/wiki/index.md` for existing patterns, decisions, and related knowledge. Inject findings into plan context.
+   - Parallel research: repo-research, learnings, best-practices, framework-docs, **`/dev:wiki-search`**
+   - **Wiki Query**: 调用 `/dev:wiki-search` 扫项目 `wiki/index.md` + 全局 `~/.claude/wiki/index.md`,获取既有模式、决策、相关知识,按 caller 推荐顺序读页面,注入 plan context。
    - Output: `docs/plans/YYYY-MM-DD-NNN-<type>-<name>-plan.md`（frontmatter 必须含 `status: active`）
    - Scope auto-classified: Lightweight / Standard / Deep
 

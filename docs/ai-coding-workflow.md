@@ -443,6 +443,83 @@ ship (合并基准分支 -> 测试 -> 覆盖率审计 60%/80% -> 计划完成度
 
 ---
 
+## 工作流引导 -- `dev:init`
+
+> 让任意仓库开始遵循 `dev:*` 工作流的入口工具。不参与流程编排。
+
+`dev:init` 向目标仓库的 `CLAUDE.md` **追加**"dev:* preamble"节（七条铁律 + 编码行为约束 + 中文工作语言 + 提交由用户触发），带 `<!-- dev:* preamble: start/end -->` 锚点。已有同节时询问"保留 / 替换 / 手动编辑"，**默认保留**。随后建 `AGENTS.md -> CLAUDE.md` 软链(Codex 兼容),并把仓库级技能目录迁移为 cross-harness 单源布局:
+
+```
+<project>/
+├── skills/                     # 单源
+├── .claude/skills -> ../skills
+└── .agents/skills -> ../skills
+```
+
+已是目标形态时幂等跳过;`.claude/skills/` 或 `.agents/skills/` 已是真目录的历史布局走 GATE 确认后迁移;两侧都是真目录且有冲突时询问合并策略。
+
+### 与 Claude Code 内置 `/init` 的分工
+
+| 工具 | 管什么 |
+|---|---|
+| `/init`（内置） | "**项目是什么**" —— 扫代码生成通用 CLAUDE.md |
+| `/dev:init`（本套） | "**项目按什么工作流走**" —— 注入 `dev:*` 契约 preamble + 建 cross-harness 技能目录 |
+
+两者正交。典型顺序：先 `/init` → 再 `/dev:init` → 最后 `/dev:doctor` 体检依赖。
+
+### 不做的事（保持轻量）
+
+- ❌ 修改 `.claude/settings.json`
+- ❌ 创建 `docs/brainstorms/plans/solutions/` 空目录
+- ❌ 安装 plugin / symlink 上游 skills
+- ❌ 自动 `git commit`
+- ❌ 自动改 `.gitignore`（只提示白名单写法）
+
+---
+
+## 依赖健康检查 -- `dev:doctor`
+
+> 跨 phase 的诊断工具，不参与流程编排。
+
+`dev:*` 流程引用大量第三方技能（`compound-engineering:*`、`superpowers:*`、`gstack-*`、`ce:*`）和 CLI（`dev-browser`）。当机器 / harness 切换、plugin 升级、或某个 phase 路由到的 skill 报"not found"时，调用 `/dev:doctor` 一次性扫描全部依赖，给出三态报告：
+
+- ✅ **已安装** -- 在默认位置找到
+- ❌ **缺失** -- 默认位置和 PATH 都没找到 → 影响哪些 phase 必须列出
+- ⚠️ **可疑** -- 默认位置没找到，但可能由 plugin marketplace 加载（不是错误）
+
+### 何时调用
+
+| 场景 | 为什么 |
+|---|---|
+| 仓库 clone 到新机器 / 新 harness | 第一次跑 `/dev:flow` 前先体检 |
+| 某个 phase 路由失败、skill not found | 定位是依赖缺失还是路由错误 |
+| 上游 plugin 升级后 | 确认没有重命名失效的引用 |
+| Codex ↔ Claude Code 切换 | gstack-* 缺失属预期降级，要让用户知道哪些 phase 受影响 |
+
+### 与流程的关系
+
+`dev:doctor` **不是 phase**，不出现在 `dev:flow` 的串行链中。它是横切诊断：
+
+```
+            ┌───────────────────────────┐
+            │  dev:doctor (按需调用)      │
+            │  ✅/❌/⚠️ 三态 + phase 影响  │
+            └───────────┬───────────────┘
+                        ↓
+       ┌────┬────┬────┬────┬────┬────┬────┐
+       │ P1 │ P2 │ P3 │ P4 │ P5 │ P6 │ P7 │
+       └────┴────┴────┴────┴────┴────┴────┘
+       discover/design/plan/code/verify/ship/learn
+```
+
+### 铁律
+
+- **只读诊断** -- 不安装、不修改、不提交
+- **不预设位置** -- plugin 加载路径因 harness 而异，默认位置没找到时标 ⚠️ 而非 ❌
+- **降级不是错误** -- Codex 上 gstack-* 缺失是预期，报告中明确"已知降级"
+
+---
+
 ## 浏览器自动化工具选择（贯穿 Phase 4/5/6）
 
 涉及 UI 验证、QA 测试、金丝雀检查时的工具优先级：
