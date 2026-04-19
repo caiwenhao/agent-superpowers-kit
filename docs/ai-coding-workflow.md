@@ -441,6 +441,26 @@ ship (合并基准分支 -> 测试 -> 覆盖率审计 60%/80% -> 计划完成度
 - 金丝雀验证按 diff 范围分级：docs 跳过、config smoke、backend 控制台、frontend 全量（frontend 优先用 `dev-browser --headless` + Playwright API 脚本验证关键路由 / 表单 / 控制台无 error）
 - 每个失败点提供回滚选项
 
+### 过程文件归档(Phase 6 收尾可选步骤)
+
+`land-and-deploy` 完成后,dev-ship 扫描本任务相关的**过程文件**并 GATE 询问归宿:
+
+| 目录 | 性质 | 默认动作 |
+|---|---|---|
+| `docs/brainstorms/` | 过程(R-ID 需求) | 可归档到 `docs/archive/<year>/` |
+| `docs/plans/` | 过程(实现 checklist) | 可归档 |
+| `docs/superpowers/{specs,plans}/` | 过程(同上) | 可归档 |
+| `docs/ideation/` | 过程(点子排序表) | 可归档或直接 `git rm` |
+| **`docs/solutions/`** | **沉淀(institutional memory)** | **永远不动** |
+
+四选一:
+1. **归档到 `docs/archive/<year>/`(推荐)** —— `git mv` 保留 history,主目录只留在飞文档
+2. **走 `/dev:wiki-ingest` 编译进 wiki 后 `git rm` 原文** —— 适合长期项目,信息结构化沉淀
+3. **保持原位** —— 文档本身仍有长期参考价值
+4. **跳过** —— 用户自行处理
+
+归档/删除的 `git mv` / `git rm` 不由 skill 自动 commit(铁律 7);作为下次 commit 的一部分,仍由用户显式触发。
+
 ---
 
 ## 工作流引导 -- `dev:init`
@@ -620,7 +640,7 @@ Phase 5 (ce:review) <-- learnings-researcher 始终启用 -------------------+
 所有 gstack 技能 <-- preamble 自动搜索 learnings.jsonl ------------------+
 ```
 
-**知识不只是被记录 -- 它被��译成结构化知识网，自动注入到未来的发现、规划和审查中。**
+**知识不只是被记录 -- 它被编译成结构化知识网，自动注入到未来的发现、规划和审查中。**
 
 ---
 
@@ -732,7 +752,7 @@ retro   -> 摩擦点   -> 技能巡检      -> 更新 SKILL.md -> 所有 Phase (
 ```
 Raw Sources（保留，不可变）:
   docs/solutions/*.md        -- ce:compound 写入的解决方案
-  learnings.jsonl            -- gstack 自动写���的一行洞察
+  learnings.jsonl            -- gstack 自动写下的一行洞察
   docs/brainstorms/          -- 需求文档
   retro reports              -- 回顾报告
 

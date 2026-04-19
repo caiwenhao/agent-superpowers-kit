@@ -114,14 +114,43 @@ Verified code (from Phase 5)
 
    **GATE: Merge-readiness report shown to user. User confirms before merge.**
 
-5. **Next**: `/dev:learn` (Phase 7)
+5. **过程文件归档(可选 GATE,land-and-deploy 之后触发)**:
+   扫描本任务相关的过程文件:
+   ```bash
+   # 用本次 PR/分支关联的日期或 R-ID 关键词匹配
+   ls docs/brainstorms/*-requirements.md docs/plans/*-plan.md docs/superpowers/{specs,plans}/*.md docs/ideation/*.md 2>/dev/null
+   ```
+   筛选条件:frontmatter `status: shipped` 或 修改日期落在本任务窗口内 或 文件名含本任务的 R-ID/topic。
+
+   **GATE**(展示候选清单 + 推荐动作):
+   ```
+   检测到本任务相关的过程文件 N 份:
+     - docs/brainstorms/2026-04-19-foo-requirements.md
+     - docs/plans/2026-04-19-001-feat-foo-plan.md
+     - docs/superpowers/specs/2026-04-19-foo-design.md
+
+   docs/solutions/ 永远不动(institutional memory)。
+
+   选择处理方式:
+     1. 归档到 docs/archive/<year>/ (Recommended) -- 用 git mv 保留 history,主目录留空
+     2. 走 dev:wiki-ingest 编译进 wiki 后再删原文 -- 信息结构化沉淀,适合长期项目
+     3. 保持原位 -- 文档本身就有长期参考价值
+     4. 跳过 -- 我自己处理
+   ```
+
+   **执行**(用户确认后):
+   - 选 1: `mkdir -p docs/archive/$(date +%Y) && git mv <files> docs/archive/$(date +%Y)/`,提示用户**不主动 commit**(铁律 7),把归档作为下次 commit 的一部分
+   - 选 2: 委托 `/dev:wiki-ingest <files>`,完成后再 GATE 是否 `git rm` 原文
+   - 选 3 / 4: 跳过
+
+6. **Next**: `/dev:learn` (Phase 7)
 
 ## Inputs / Outputs
 
 | | Value |
 |---|---|
 | **Input** | Verified code diff (Phase 5 PASS) |
-| **Output** | Merged PR, deployed to production, canary verified |
+| **Output** | Merged PR, deployed to production, canary verified;过程文件按用户选择归档/编译/保留 |
 | **Next** | `/dev:learn` (Phase 7) |
 
 ## Iron Law
