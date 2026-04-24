@@ -13,3 +13,4 @@ agent-skills/
 !.codex/agents/**
 !.codex/prompts/
 !.codex/prompts/**
+.worktrees
