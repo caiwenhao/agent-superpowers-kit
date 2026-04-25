@@ -40,7 +40,7 @@
 
 | 信号 | 检测方式 | 路由结果 |
 |---|---|---|
-| Signal 0: 是否在任务专属工作区 | `git rev-parse --abbrev-ref HEAD` + `git worktree list` | 在 main/master 或未进入任务专属 worktree -> 调用 `compound-engineering:git-worktree`（或 `superpowers:using-git-worktrees`）先创建工作区，再进入任何 Phase |
+| Signal 0: 是否在任务专属工作区 | `git rev-parse --abbrev-ref HEAD` + `git worktree list` | 在 main/master 或未进入任务专属 worktree -> 调用 `compound-engineering:ce-worktree`（或 `superpowers:using-git-worktrees`）先创建工作区，再进入任何 Phase |
 | Signal 1: 有无未完成工作 | plan status + git status + PR | 恢复到中断的阶段 |
 | Signal 2: 用户输入了什么 | 意图分类 | 路由到匹配阶段 |
 | Signal 3: 存在哪些产物 | 扫描 docs/ + DESIGN.md + .context/ | 跳到最近的未完成阶段 |
@@ -52,6 +52,19 @@
 - **跳过** -- 跳过当前阶段（如后端无需设计）
 - **暂停** -- 保存进度，稍后用 `/dev:flow` 恢复
 - **回退** -- 回到更早的阶段修改
+
+### 主干同步（Trunk Sync）
+
+> 工作区离 main 越远，最终合并越痛苦。每个 GATE 自动检测偏离度。
+
+| 偏离度 | 表现 | 动作 |
+|---|---|---|
+| 0-5 commits | ✅ 显示偏离数 | 无 |
+| 6-15 commits | ⚠️ 黄色提醒 | 建议 `git rebase origin/main` |
+| 16+ commits | 🔴 红色警告 | 强烈建议立即 rebase，列出 main 上关键变更文件 |
+
+Phase 4 长实现阶段：每 3 个 Implementation Unit 完成后额外检查一次。
+Phase 6 前：**强制同步**（不可跳过），rebase 后有冲突则协助解决。
 
 ### 阶段跳过规则
 
@@ -98,8 +111,8 @@ Wiki Query (项目 wiki/index.md + ~/.claude/wiki/index.md)
 "加个功能"（模糊） -> Route C: ce:brainstorm (Standard/Deep)
 "做这个具体的事"   -> Route D: ce:brainstorm (Lightweight)
                                         |
-                                  document-review
-                                  (多人格多轮审查循环)
+                                  ce:doc-review
+                                  (opt-in，用户选择时运行)
 ```
 
 `dev:discover` 自动检测用户输入的意图清晰度（无方向 / 有方向但不确定价值 / 多面向 / 清晰小范围），路由到正确的入口技能。**所有路径最终汇聚到 `ce:brainstorm`。**
@@ -109,14 +122,14 @@ Wiki Query (项目 wiki/index.md + ~/.claude/wiki/index.md)
 | `ce:ideate` | 创意发散 | 无方向时，生成 20-30 候选，筛选到 Top 5-7 |
 | `office-hours` | 需求验证 | 有想法但不确定值不值得做 |
 | **`ce:brainstorm`** | **需求定义（唯一出口）** | **所有场景最终汇聚于此** |
-| `document-review` | 多人格审查 | 内嵌在 brainstorm 中，多轮循环直到零 P0/P1 |
+| `ce:doc-review` | 多人格审查 | opt-in，brainstorm Phase 4 handoff 提供选项 |
 
 ### 为什么是 `ce:brainstorm` 的需求文档
 
 - **R-ID 追溯**（R1, R2, R3...）-- 贯穿规划、实现、审查全流程的锚点
 - **阻塞问题分级** -- Resolve Before Planning / Deferred to Planning
 - **无实现泄漏** -- 只定义 WHAT，不泄漏 HOW
-- **document-review 多轮循环** -- coherence / feasibility / product-lens / design-lens / security-lens / scope-guardian 并行审查
+- **ce:doc-review（opt-in）** -- coherence / feasibility / product-lens / design-lens / security-lens / scope-guardian 并行审查
 
 ### 自动检测下一阶段
 
@@ -202,7 +215,7 @@ ce:plan (唯一创建器)
     |  Test Scenarios (枚举验证点，不预写代码)
     |
     v
-document-review (Layer 1, 多轮循环)
+ce:doc-review (Layer 1, 多轮循环)
     |  coherence / feasibility / scope-guardian
     |
     v
@@ -261,7 +274,7 @@ ce:work (自动检测策略)
     每 2-3 单元: Simplify 通道（跨单元去重，仍不 commit）
     |
     v
-内嵌 ce:review mode:autofix (快速 safe_auto 修复, 最多 2 轮)
+内嵌 ce:code-review mode:autofix (快速 safe_auto 修复, 最多 2 轮)
 ```
 
 ### 自动触发的辅助技能
@@ -294,7 +307,7 @@ ce:work (自动检测策略)
 - ✅ 所有 Unit 完成、Phase 4 收尾时（**默认**）
 - ✅ 中途某个 Unit 改动量大 / 重构密集 / 引入新抽象时可选插一次
 - ❌ 每个 Unit 都跑（太频繁，`ce:work` 已自动每 2-3 Unit 做内置 simplify pass）
-- ❌ `ce:review` 完成后再跑（维度重叠）
+- ❌ `ce:code-review` 完成后再跑（维度重叠）
 
 **与 `ce:work` 内置 simplify pass 的区别**：
 
@@ -322,13 +335,13 @@ ce:work (自动检测策略)
 >
 > 核心产出：审查裁决（PASS / NEEDS_WORK）+ safe_auto 修复 + 残余 todo
 
-### 智能路由：`ce:review` 自动组队 + `dev:verify` 自动叠加
+### 智能路由：`ce:code-review` 自动组队 + `dev:verify` 自动叠加
 
 ```
 代码变更
     |
     v
-ce:review interactive plan:<path> (核心, 多轮循环最多 3 轮)
+ce:code-review interactive plan:<path> (核心, 多轮循环最多 3 轮)
     |
     |-- 跨模型对抗审查: Claude + Codex 始终并行派发
     |   大 diff (200+ 行) 额外加 Codex 结构化 P1 门控
@@ -357,7 +370,7 @@ safe_auto 自动修复 -> gated_auto/manual 交用户 -> 残余写入 todo
     v
 dev:verify 自动叠加额外层:
     |
-    +-- diff 涉及 views/components/css   -> test-browser (受影响路由) | `dev-browser`（轻量 stdin 脚本，跨 harness 通用）
+    +-- diff 涉及 views/components/css   -> ce:test-browser (受影响路由) | `dev-browser`（轻量 stdin 脚本，跨 harness 通用）
     +-- 5+ UI 文件跨多页变更             -> gstack/qa (全站) + design-review | `dev-browser`（脚本化遍历多页路由）
     +-- diff 涉及 auth/payment/secret    -> gstack/cso (OWASP + STRIDE)
     +-- diff 涉及 prompt/llm/ai          -> gstack/review (LLM 信任边界)
@@ -369,7 +382,7 @@ dev:verify 自动叠加额外层:
 todo-resolve (批量处理残余)
 ```
 
-### Phase 4 vs Phase 5 的 ce:review 区别
+### Phase 4 vs Phase 5 的 ce:code-review 区别
 
 | | Phase 4 (内嵌) | Phase 5 (完整) |
 |---|---|---|
@@ -393,38 +406,57 @@ todo-resolve (批量处理残余)
 >
 > 核心产出：PR + 部署
 
-### 智能路由：按项目类型和上游质量自动选路径
+### 智能路由：按项目类型和用户意图自动选路径
 
 ```
 验证通过的代码 (from Phase 5)
   |
-  +-- [未版本化 + 上游 ce:review 已确认] -> Path A: CE 轻量
-  |   git-commit-push-pr -> land-and-deploy
+  [强制前置: 主干同步]
+  git fetch origin main && git rebase origin/main
   |
-  +-- [版本化项目 (有 VERSION 文件)] ----> Path B: gstack 完整
+  +-- [默认] -----------------------------------------> Path A: Squash 合并
+  |   squash merge + 中文 commit，保持主干线性干净
+  |
+  +-- [用户显式要求 PR / 团队协作项目] ----------------> Path B: PR 路径
+  |   ce:commit-push-pr -> land-and-deploy
+  |
+  +-- [版本化项目 (有 VERSION 文件)] ------------------> Path C: gstack 完整
   |   ship -> document-release -> land-and-deploy
   |
-  +-- [无上游审查证据] ------------------> Path B: gstack 完整
-  |
-  +-- [紧急热修复] ----------------------> Path A: CE 轻量
+  +-- [无上游审查证据 + 版本化] -----------------------> Path C: gstack 完整
 ```
 
 ### 自动检测的前置和叠加操作
 
 | 检测到的信号 | 自动动作 |
 |---|---|
+| 主干落后 >0 commits | **强制 rebase**（不可跳过） |
 | PR 有未解决的审查线程 | 先 `resolve-pr-feedback` |
 | Diff 涉及 UI 文件 | 并行 `feature-video` (PR 嵌入录屏) |
 | 无部署配置文件 (greenfield) | 先 `setup-deploy` 配置部署 |
 
-### Path A: CE 轻量路径
+### Path A: Squash 合并回 main（默认路径）
 
 ```
-git-commit-push-pr (ce-pr-description 生成描述 -> 自适应 PR)
+主干同步 (git rebase origin/main)
+  -> git checkout main && git merge --squash <branch>
+  -> GATE: 展示 diff 摘要 + 拟定中文 commit message，用户确认
+  -> git commit -m "简洁中文描述"
+  -> git push origin main
+  -> 清理 feature branch / worktree
+  [+ feature-video in parallel if UI detected]
+```
+
+**为什么默认不创建 PR**：个人项目或小团队场景下，PR 是不必要的仪式。squash 合并保持 main 线性，每个 commit 对应一个完整功能，`git log --oneline` 即是项目演进史。
+
+### Path B: PR 路径（用户显式要求时）
+
+```
+/ce:ce:commit-push-pr (ce-pr-description 生成描述 -> 自适应 PR)
   -> land-and-deploy (CI -> merge-readiness 报告 -> 合并 -> 部署 -> 金丝雀)
 ```
 
-### Path B: gstack 完整发布路径
+### Path C: gstack 完整发布路径（版本化项目）
 
 ```
 ship (合并基准分支 -> 测试 -> 覆盖率审计 60%/80% -> 计划完成度审计
@@ -547,7 +579,7 @@ ship (合并基准分支 -> 测试 -> 覆盖率审计 60%/80% -> 计划完成度
 | 场景 | 推荐工具 | 理由 |
 |---|---|---|
 | **本地启动 dev server 后跑 golden path / 表单 / 控制台无 error**（Phase 4 收尾、Phase 5 PR 前自检） | **`dev-browser`** | 单二进制 CLI，stdin 接 JS 脚本，QuickJS 沙箱内调用 Playwright API；跨 harness 通用（Claude Code / Codex / 任意 shell）；自动 attach 已开 Chrome 或 launch Chromium |
-| 受影响路由的回归用例（Phase 5 自动叠加） | `test-browser`（gstack） | 与 ce:review 联动产生结构化报告 |
+| 受影响路由的回归用例（Phase 5 自动叠加） | `ce:test-browser`（gstack） | 与 ce:code-review 联动产生结构化报告 |
 | 全站 QA 与 bug 修复闭环（Phase 5，5+ UI 文件） | `gstack/qa` | 报告 + 自动修复 + 重验证一体；浏览器层用 dev-browser 也可作 fallback |
 | 视觉 / 设计回归 | `design-review`（gstack） | 截图对比 + 严重性评分 |
 | 部署后金丝雀（Phase 6） | `dev-browser` 脚本 + `gstack-canary` 长期监控 | dev-browser 一次性烟测，gstack-canary 持续观测 |
@@ -572,7 +604,7 @@ EOF
 dev-browser --connect <<'EOF' ...
 ```
 
-**何时不用 dev-browser**：需要与 ce:review / gstack 报告管线集成时优先 `test-browser` / `gstack/qa`；纯 MCP 工作流可继续用 Playwright MCP。dev-browser 的优势是**轻量 + 跨 harness + 沙箱安全**，适合作为 Phase 4-6 的默认 UI 验证刀。
+**何时不用 dev-browser**：需要与 ce:code-review / gstack 报告管线集成时优先 `ce:test-browser` / `gstack/qa`；纯 MCP 工作流可继续用 Playwright MCP。dev-browser 的优势是**轻量 + 跨 harness + 沙箱安全**，适合作为 Phase 4-6 的默认 UI 验证刀。
 
 ---
 
@@ -636,7 +668,7 @@ Phase 4 (ce:work) -- 解决问题 --> Phase 7 (ce:compound) -- 沉淀 --> docs/s
                                                                         |
 Phase 1 (ce:brainstorm) <-- Wiki Query 注入已有知识 --------------------+
 Phase 3 (ce:plan) <-- learnings-researcher + wiki-search ---------------+
-Phase 5 (ce:review) <-- learnings-researcher 始终启用 -------------------+
+Phase 5 (ce:code-review) <-- learnings-researcher 始终启用 -------------------+
 所有 gstack 技能 <-- preamble 自动搜索 learnings.jsonl ------------------+
 ```
 
@@ -822,13 +854,14 @@ dev:flow
 
 - **智能路由**: 每个阶段内部自动检测场景，选最优技能组合
 - **GATE 暂停**: 用户确认后才继续
+- **主干同步**: 每个 GATE 检测与 main 的偏离度，及时提醒 rebase
 - **恢复智能**: 跨会话自动检测中断位置
 - **阶段跳过**: 自动检测哪些阶段可跳过
 
 ### `lfg` -- 全自动编排
 
 ```
-ce:plan -> GATE -> ce:work -> GATE -> ce:review(autofix) -> todo-resolve -> test-browser -> feature-video -> DONE
+ce:plan -> GATE -> ce:work -> GATE -> ce:code-review(autofix) -> todo-resolve -> ce:test-browser -> feature-video -> DONE
 ```
 
 - 串行执行，适合明确知道从 Phase 3 开始的场景
@@ -855,8 +888,8 @@ ce:plan -> GATE -> ce:work -> GATE -> ce:review(autofix) -> todo-resolve -> test
 | 3 | **根因先于修复** -- 不理解为什么坏就不能修 | systematic-debugging, investigate |
 | 4 | **证据先于断言** -- 没跑命令不能说"通过了" | verification-before-completion |
 | 5 | **验证先于采纳** -- 审查反馈先验证再实现 | receiving-code-review |
-| 6 | **工作区先于工作** -- 创建任何文档或代码前必须在任务专属 worktree / feature branch 中，否则先创建工作区 | dev:flow Signal 0, compound-engineering:git-worktree, superpowers:using-git-worktrees |
-| 7 | **提交由用户触发** -- AI 在 Phase 1-5 只修改文件、运行测试，不主动 `git commit` / `git push` / 创建 PR；提交仅在用户显式调用 `/dev:ship` 或说"提交/commit/push/PR"时进行 | dev:ship, ce:git-commit-push-pr, gstack-ship |
+| 6 | **工作区先于工作** -- 创建任何文档或代码前必须在任务专属 worktree / feature branch 中，否则先创建工作区 | dev:flow Signal 0, compound-engineering:ce-worktree, superpowers:using-git-worktrees |
+| 7 | **提交由用户触发** -- AI 在 Phase 1-5 只修改文件、运行测试，不主动 `git commit` / `git push` / 创建 PR；提交仅在用户显式调用 `/dev:ship` 或说"提交/commit/push/PR"时进行 | dev:ship, ce:ce:commit-push-pr, gstack-ship |
 
 ---
 
@@ -926,7 +959,7 @@ ce:plan -> GATE -> ce:work -> GATE -> ce:review(autofix) -> todo-resolve -> test
 
 ```
 Phase 1            Phase 2            Phase 3            Phase 4         Phase 5         Phase 6
-需求文档            DESIGN.md          实施计划            ce:work         ce:review       交付
+需求文档            DESIGN.md          实施计划            ce:work         ce:code-review       交付
 R1,R2,R3 -------> Token/色值 -------> Req Trace -------> 实现代码 -----> R-ID 验证 ----> PR
                                        Impl Units         增量提交        safe_auto       部署
                                        Test Scenarios                     修复

@@ -15,9 +15,9 @@ description: "Use when starting any new work: a feature idea, vague request, pro
 ## 通用规则
 
 1. **始终用中文与用户交流。** 所有状态报告、GATE 提示、路由宣告均使用中文。
-2. **工作区前置（强制）。** 在创建任何文档或代码之前，执行 `git rev-parse --abbrev-ref HEAD` 检查当前分支。若在 main/master 或未进入任务专属 worktree，STOP 并调用 `compound-engineering:git-worktree`（或 `superpowers:using-git-worktrees`）创建工作区后再继续。
+2. **工作区前置（强制）。** 在创建任何文档或代码之前，执行 `git rev-parse --abbrev-ref HEAD` 检查当前分支。若在 main/master 或未进入任务专属 worktree，STOP 并调用 `compound-engineering:ce-worktree`（或 `superpowers:using-git-worktrees`）创建工作区后再继续。
 3. **提交由用户触发。** 本阶段只写文件、运行只读命令，不执行 `git commit` / `git push` / 创建 PR。提交动作只在 `/dev:ship`（Phase 6）由用户显式触发。
-4. **Review 多轮循环。** `document-review` 执行"审查->修复->再审查"循环，直到零 P0/P1 或达到 3 轮上限。
+4. **Review 多轮循环。** `ce:doc-review` 执行"审查->修复->再审查"循环，直到零 P0/P1 或达到 3 轮上限。
 
 ## Overview
 
@@ -97,12 +97,12 @@ All routes converge to `/ce:brainstorm` as the single exit.
    **Route B**: Run `/gstack-office-hours` -> validated direction -> feed into `/ce:brainstorm`
    **Route C/D**: Run `/ce:brainstorm` directly (scope auto-assessed by ce:brainstorm itself)
 
-3. **REVIEW: `document-review` 多轮循环** (内嵌在 `ce:brainstorm` Phase 3.5)
-   - 多人格并行审查: coherence / feasibility / product-lens / design-lens / security-lens / scope-guardian
+3. **REVIEW: `ce:doc-review`（opt-in，由 ce:brainstorm Phase 4 handoff 提供选项）**
+   - 用户选择运行时：多人格并行审查 (coherence / feasibility / product-lens / design-lens / security-lens / scope-guardian)
    - `auto` 修复自动应用，`present` 发现交用户判断
    - **循环**: 审查 -> 修复 -> 再审查，直到零 P0/P1 或 3 轮上限或连续两轮发现相同
 
-   **GATE: 需求文档必须存在，document-review 通过（零 P0/P1），用户批准。**
+   **GATE: 需求文档必须存在，用户批准。若运行了 ce:doc-review 则需通过（零 P0/P1）。**
 
 4. **Detect next phase** by scanning the approved requirements (中文宣告):
    - 需求涉及 UI (views, pages, components, styles, layouts, visual) -> `/dev:design`

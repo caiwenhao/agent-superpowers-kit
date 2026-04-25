@@ -35,7 +35,7 @@ description: "Use when starting work on this repo for the first time, after a fr
 
 | 模式 | 含义 | 举例 |
 |---|---|---|
-| `compound-engineering:<name>` | CE plugin 命名空间技能 | `compound-engineering:git-worktree` |
+| `compound-engineering:<name>` | CE plugin 命名空间技能 | `compound-engineering:ce-worktree` |
 | `superpowers:<name>` | Superpowers plugin 技能 | `superpowers:using-git-worktrees` |
 | `gstack-<name>` | gstack plugin 技能（hyphen 形式） | `gstack-codex`, `gstack-qa` |
 | `gstack/<name>` | gstack plugin 技能（slash 遗留形式，也要检查） | `gstack/cso` |
@@ -60,7 +60,7 @@ description: "Use when starting work on this repo for the first time, after a fr
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 ✅ 已安装（M 项）
-   compound-engineering:git-worktree      ~/.claude/skills/compound-engineering-git-worktree/
+   compound-engineering:ce-worktree      ~/.claude/skills/compound-engineering-git-worktree/
    superpowers:using-git-worktrees        ~/.claude/skills/superpowers-using-git-worktrees/
    gstack-codex                           ~/.claude/skills/gstack-codex/
    ...

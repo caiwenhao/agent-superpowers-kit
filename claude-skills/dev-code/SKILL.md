@@ -15,9 +15,9 @@ description: "Use when a reviewed plan exists and it is time to write code. Rout
 ## 通用规则
 
 1. **始终用中文与用户交流。** 所有状态报告、GATE 提示均使用中文。
-2. **工作区前置（强制）。** 开始写代码前执行 `git rev-parse --abbrev-ref HEAD` 检查当前分支。若在 main/master 或未进入任务专属 worktree，STOP 并调用 `compound-engineering:git-worktree`（或 `superpowers:using-git-worktrees`）创建工作区后再继续。
+2. **工作区前置（强制）。** 开始写代码前执行 `git rev-parse --abbrev-ref HEAD` 检查当前分支。若在 main/master 或未进入任务专属 worktree，STOP 并调用 `compound-engineering:ce-worktree`（或 `superpowers:using-git-worktrees`）创建工作区后再继续。
 3. **提交由用户触发。** Phase 4 只做文件修改、运行测试、必要时 `git add` 暂存，**不执行** `git commit` / `git push` / 创建 PR。提交仅在 `/dev:ship`（Phase 6）由用户显式触发。
-4. **Review 多轮循环。** 内嵌的 `ce:review mode:autofix` 执行多轮循环（最多 2 轮 bounded re-review）。
+4. **Review 多轮循环。** 内嵌的 `ce:code-review mode:autofix` 执行多轮循环（最多 2 轮 bounded re-review）。
 
 ## Overview
 
@@ -75,7 +75,7 @@ Position in workflow: Phase 3 (planning) -> **Phase 4** -> Phase 5 (verification
    - Per task: Implement -> Test Discovery -> System-Wide Test Check -> 暂存变更（可 `git add`，**不 commit**）
    - Every 2-3 units: Simplify pass (cross-unit dedup, still no commit)
 
-3. **REVIEW: `ce:review mode:autofix` 多轮循环** (内嵌在 `ce:work` Phase 3)
+3. **REVIEW: `ce:code-review mode:autofix` 多轮循环** (内嵌在 `ce:work` Phase 3)
    - Tier 2 (default): 20+ persona 并行审查, safe_auto 修复, R-ID 追溯
    - Tier 1 (仅当全部满足: 纯新增 + 单一关注点 + 模式跟随 + 忠于计划)
    - 传入 `plan:<path>` 用于需求追溯验证
@@ -96,7 +96,7 @@ Position in workflow: Phase 3 (planning) -> **Phase 4** -> Phase 5 (verification
 | | Value |
 |---|---|
 | **Input** | Plan file path from Phase 3 (or bare prompt for small work) |
-| **Output** | 已修改的代码 + 通过的测试 + ce:review autofix 已应用 + `/simplify` 已扫过（**未 commit**，工作树留有变更） |
+| **Output** | 已修改的代码 + 通过的测试 + ce:code-review autofix 已应用 + `/simplify` 已扫过（**未 commit**，工作树留有变更） |
 | **Next** | `/dev:verify` (Phase 5) |
 
 ## Iron Laws

@@ -34,37 +34,45 @@ Position in workflow: Phase 5 (verify) -> **Phase 6** -> Phase 7 (knowledge)
 
 ## Scene Detection
 
+**Signal 0: 主干同步（强制前置）**
+- `git fetch origin main && git rev-list --count HEAD..origin/main` -> 落后 >0 则先 rebase
+- rebase 有冲突时协助解决，解决后继续
+
 **Signal 1: Does the project use versioning?**
-- `VERSION` file exists OR `package.json` has `version` field -> versioned project
-- No version file -> unversioned project
+- `VERSION` file exists OR `package.json` has `version` field -> versioned project -> Path C
+- No version file -> check Signal 2
 
-**Signal 2: What upstream quality was already applied?**
-- `ce:review` ran in Phase 4/5 (check `.context/compound-engineering/ce-review/` for recent run) -> upstream quality confirmed
-- No ce:review evidence -> needs ship's built-in review
+**Signal 2: 用户是否显式要求 PR?**
+- 用户说"创建 PR"/"open PR"/"pull request" -> Path B (PR 路径)
+- 项目有 CI/CD 依赖 PR（检测 `.github/workflows/` 中有 `pull_request` trigger）-> 建议 Path B
+- 其他情况 -> Path A (squash 合并回 main，默认)
 
-**Signal 3: PR feedback pending?**
+**Signal 3: What upstream quality was already applied?**
+- `ce:code-review` ran in Phase 4/5 (check `.context/compound-engineering/ce-review/` for recent run) -> upstream quality confirmed
+- No ce:code-review evidence + versioned project -> Path C (needs ship's built-in review)
+
+**Signal 4: PR feedback pending?**
 - Run `gh pr view --json reviewDecision,comments` on current branch
 - Unresolved review threads exist -> prepend `resolve-pr-feedback`
 
-**Signal 4: UI changes in diff?**
+**Signal 5: UI changes in diff?**
 - Scan diff for `views/`, `components/`, `*.tsx`, `*.css`, `*.html` -> add `feature-video` + 部署后 `dev-browser` 烟测（关键路由 + 控制台无 error）
 
 ## Routing
 
 ```
-Verified code (from Phase 5)
+验证通过的代码 (from Phase 5)
   |
-  +-- [Unversioned + upstream quality confirmed] -> Path A: CE Lightweight
-  |   Daily feature, already passed ce:review
+  +-- [默认] -----------------------------------------> Path A: Squash 合并回 main
+  |   squash merge + 中文 commit message，保持主干干净
   |
-  +-- [Versioned project] -----------------------> Path B: gstack Full
-  |   Needs VERSION bump + CHANGELOG
+  +-- [用户显式要求 PR / 团队协作项目] ----------------> Path B: PR 路径
+  |   ce:commit-push-pr -> land-and-deploy
   |
-  +-- [No upstream review evidence] --------------> Path B: gstack Full
-  |   Needs ship's built-in review gates
+  +-- [版本化项目 (有 VERSION 文件)] ------------------> Path C: gstack 完整发布
+  |   ship -> document-release -> land-and-deploy
   |
-  +-- [Emergency hotfix] -------------------------> Path A: CE Lightweight
-      (user explicitly says "hotfix" or "urgent")
+  +-- [无上游审查证据] --------------------------------> Path C: gstack 完整发布
 ```
 
 ### Pre-delivery (auto-detected)
@@ -77,8 +85,10 @@ Verified code (from Phase 5)
 ## Workflow
 
 1. **Detect scene** and announce (中文):
+   - "默认路径 -- squash 合并回 main，一个干净的中文 commit。"
+   - "用户要求创建 PR -- 使用 PR 路径。"
    - "版本化项目，有 VERSION 文件 -- 使用完整发布流程含 CHANGELOG。"
-   - "上游 ce:review 已确认 -- 使用轻量提交+PR 路径。"
+   - "主干落后 8 个提交 -- 先 rebase 同步。"
    - "PR 有 3 个未解决的审查线程 -- 先处理反馈。"
 
 2. **Pre-delivery** (if detected):
@@ -86,9 +96,44 @@ Verified code (from Phase 5)
 
 3. **Execute detected path**
 
-   **Path A: CE Lightweight**
+   **Path A: Squash 合并回 main（默认）**
+
+   主干保持线性、干净、每个 commit 对应一个完整功能。
+
+   ```bash
+   # 0. 强制主干同步（不可跳过）
+   git fetch origin main
+   git rebase origin/main
+   # 冲突时协助解决，解决后继续
+
+   # 1. 切回 main
+   git checkout main
+   git pull origin main
+
+   # 2. Squash merge（不自动 commit）
+   git merge --squash <feature-branch>
+
+   # 3. 用中文 commit message 提交
+   git commit -m "<简洁中文描述：为什么变，不是变了什么>"
+
+   # 4. Push
+   git push origin main
+
+   # 5. 清理 worktree / feature branch
+   git branch -d <feature-branch>
+   # 如果是 worktree: git worktree remove <path>
    ```
-   /ce:git-commit-push-pr
+
+   **GATE: 展示 squash diff 摘要和拟定的 commit message，用户确认后执行 commit + push。**
+
+   Commit message 规范：
+   - 第一行：简洁中文，说明意图（为什么变），不超过 50 字
+   - 可选 body：补充上下文，仅在变更需要叙事时添加
+   - 不加 AI 署名 footer，除非用户要求
+
+   **Path B: PR 路径（用户显式要求时）**
+   ```
+   /ce:commit-push-pr
      - Delegates to `ce-pr-description` for PR title/body generation
      - Auto-detects conventions from repo history
      - Logical commit splitting (file-level)
@@ -97,7 +142,7 @@ Verified code (from Phase 5)
      - CI wait -> merge-readiness report -> merge -> deploy -> canary
    ```
 
-   **Path B: gstack Full Release**
+   **Path C: gstack 完整发布路径（版本化项目）**
    ```
    /gstack-ship
      - Merge base branch -> parallel tests -> coverage audit (60%/80%)
@@ -157,7 +202,7 @@ Verified code (from Phase 5)
 | | Value |
 |---|---|
 | **Input** | Verified code diff (Phase 5 PASS) |
-| **Output** | Merged PR, deployed to production, canary verified;过程文件按用户选择归档/编译/保留 |
+| **Output** | Squash 合并到 main（默认）或 PR + 部署（显式要求时）;过程文件按用户选择归档/编译/保留 |
 | **Next** | `/dev:learn` (Phase 7) |
 
 ## Iron Law

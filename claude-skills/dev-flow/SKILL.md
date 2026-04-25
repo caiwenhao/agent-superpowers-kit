@@ -15,9 +15,9 @@ description: "Use when starting any development task, or when unsure which dev: 
 ## 通用规则
 
 1. **始终用中文与用户交流。** 所有状态报告、GATE 提示、路由宣告、错误信息均使用中文。技能名称、文件路径、代码保持英文原样。
-2. **工作区前置（强制）。** 在创建任何文档或代码之前，必须确认当前在任务专属 git worktree / feature branch 中。若在 main/master 或分支与当前任务不匹配，STOP 并调用 `compound-engineering:git-worktree`（Codex 环境使用 `superpowers:using-git-worktrees`）创建工作区后再继续。用户拒绝创建时，STOP 并要求显式确认"在当前分支继续"。
+2. **工作区前置（强制）。** 在创建任何文档或代码之前，必须确认当前在任务专属 git worktree / feature branch 中。若在 main/master 或分支与当前任务不匹配，STOP 并调用 `compound-engineering:ce-worktree`（Codex 环境使用 `superpowers:using-git-worktrees`）创建工作区后再继续。用户拒绝创建时，STOP 并要求显式确认"在当前分支继续"。
 3. **提交由用户触发。** Phase 1-5 只修改文件、运行测试，不执行 `git commit` / `git push` / 创建 PR。每个 GATE 结束时不提交；提交仅发生在 Phase 6 `/dev:ship` 由用户显式触发。
-4. **Review 采取多轮循环。** 所有涉及 review 的环节（document-review、ce:review、plan-eng-review 等），执行"审查 -> 修复 -> 再审查"循环，直到：(a) 零 P0/P1 发现，或 (b) 达到最大轮次（默认 3 轮），或 (c) 连续两轮发现相同问题（收敛）。
+4. **Review 采取多轮循环。** 所有涉及 review 的环节（ce:doc-review、ce:code-review、plan-eng-review 等），执行"审查 -> 修复 -> 再审查"循环，直到：(a) 零 P0/P1 发现，或 (b) 达到最大轮次（默认 3 轮），或 (c) 连续两轮发现相同问题（收敛）。
 
 ## Overview
 
@@ -53,12 +53,12 @@ git worktree list 2>/dev/null | head -5
 | Finding | Action |
 |---|---|
 | Not in a git repo | STOP: "当前不在 git 仓库中，无法启动研发流程。" |
-| On main/master | STOP: "当前在主分支。调用 `compound-engineering:git-worktree` 创建任务专属工作区,**路径必须在 `<repo>/.worktrees/<task-name>/`**。"(Codex 环境回退到 `superpowers:using-git-worktrees`) |
-| On a branch but not a task-scoped worktree (分支名与当前任务不匹配 / 共享分支多任务) | STOP: "当前分支与本任务不匹配。调用 `compound-engineering:git-worktree` 创建独立工作区,路径 `<repo>/.worktrees/<task-name>/`。" |
+| On main/master | STOP: "当前在主分支。调用 `compound-engineering:ce-worktree` 创建任务专属工作区,**路径必须在 `<repo>/.worktrees/<task-name>/`**。"(Codex 环境回退到 `superpowers:using-git-worktrees`) |
+| On a branch but not a task-scoped worktree (分支名与当前任务不匹配 / 共享分支多任务) | STOP: "当前分支与本任务不匹配。调用 `compound-engineering:ce-worktree` 创建独立工作区,路径 `<repo>/.worktrees/<task-name>/`。" |
 | User refuses to create a worktree | STOP: "需要用户显式确认 `在当前分支继续` 才能跳过工作区前置。" |
 | Already in task-scoped worktree / feature branch | 继续 Signal 1 |
 
-> **worktree 统一落点约定**:所有 `dev:*` phase 创建的 worktree 必须放在 `<repo>/.worktrees/<name>/`(已在仓库 `.gitignore`)。禁止创建到 `/tmp`、`$HOME/worktrees`、或仓库兄弟目录——方便清理、方便发现、避免遗漏。调用 `compound-engineering:git-worktree` 时明确传该路径;该 skill 若默认位置不同,在 prompt 里覆盖它。
+> **worktree 统一落点约定**:所有 `dev:*` phase 创建的 worktree 必须放在 `<repo>/.worktrees/<name>/`(已在仓库 `.gitignore`)。禁止创建到 `/tmp`、`$HOME/worktrees`、或仓库兄弟目录——方便清理、方便发现、避免遗漏。调用 `compound-engineering:ce-worktree` 时明确传该路径;该 skill 若默认位置不同,在 prompt 里覆盖它。
 
 ### Signal 1: Is there unfinished work from a previous session?
 
@@ -76,7 +76,7 @@ gh pr view --json state,title 2>&1
 | Finding | Enter At |
 |---|---|
 | Plan with `status: active`, unchecked Implementation Units | Phase 4 (code) -- resume execution |
-| Uncommitted code changes + recent ce:review run | Phase 6 (ship) -- ready to deliver |
+| Uncommitted code changes + recent ce:code-review run | Phase 6 (ship) -- ready to deliver |
 | Uncommitted code changes, no review evidence | Phase 5 (verify) -- needs review |
 | Open PR with unresolved review threads | Phase 6 (ship) -- resolve feedback, then ship |
 | Plan with `status: active`, all units checked, no code changes | Phase 5 (verify) -- confirm completion |
@@ -110,7 +110,7 @@ ls DESIGN.md 2>/dev/null
 # Plans
 ls docs/plans/*-plan.md 2>/dev/null
 
-# Recent ce:review runs
+# Recent ce:code-review runs
 ls .context/compound-engineering/ce-review/ 2>/dev/null
 ```
 
@@ -157,12 +157,12 @@ Once the entry phase is determined, `dev:flow` drives through the pipeline:
       v
   Phase 4: /dev:code
       |  ce:work auto-selects strategy
-      |  Built-in: ce:review mode:autofix
+      |  Built-in: ce:code-review mode:autofix
       |  GATE: all tasks done, tests pass
       |
       v
   Phase 5: /dev:verify
-      |  ce:review full + auto-stack layers
+      |  ce:code-review full + auto-stack layers
       |  GATE: PASS verdict
       |
       v
@@ -190,6 +190,7 @@ At each GATE, `dev:flow` **stops and reports status** before continuing:
 需求 ID: R1 (注册), R2 (登录), R3 (管理员禁用)
 文档审查: 通过
 UI 检测: 是 (R1, R2 中提到 views/components)
+主干偏离: 0 commits behind main ✅
 
 下一步: Phase 2 (设计) -- 继续? [继续 / 跳到 Phase 3 / 暂停]
 ```
@@ -199,6 +200,60 @@ User can:
 - **跳过** -- 跳过当前阶段（如后端无需设计）
 - **暂停** -- 暂停流程，稍后用 `/dev:flow` 恢复
 - **回退** -- "回到 Phase 1 修改需求"
+
+## 主干同步机制（Trunk Sync）
+
+> 工作区离 main 越远，最终合并越痛苦。`dev:flow` 在每个 GATE 自动检测偏离度，及时提醒同步。
+
+### 检测方式
+
+每次 GATE 暂停时，自动执行：
+
+```bash
+# 获取最新 main（仅 fetch，不改工作区）
+git fetch origin main 2>/dev/null
+
+# 计算 main 上有多少新 commit 尚未合入当前分支
+BEHIND=$(git rev-list --count HEAD..origin/main 2>/dev/null || echo 0)
+echo "主干偏离: $BEHIND commits behind main"
+```
+
+### 同步阈值与动作
+
+| 偏离度 | GATE 中的表现 | 动作 |
+|---|---|---|
+| 0-5 commits | ✅ 显示偏离数，不干预 | 无 |
+| 6-15 commits | ⚠️ 黄色提醒 | 建议在当前 GATE 同步："建议在继续前同步主干：`git rebase origin/main`" |
+| 16+ commits | 🔴 红色警告 | 强烈建议同步，列出 main 上的关键变更文件："主干已有 N 个新提交，涉及 X、Y 文件，强烈建议立即 rebase 避免后续合并冲突。" |
+
+### Phase 4 长实现阶段的额外检查
+
+Phase 4 (`dev:code`) 中，如果 `ce:work` 执行超过 3 个 Implementation Unit，在每 3 个 Unit 完成后插入一次主干同步检查（与 `/simplify` 节奏类似）：
+
+```
+--- 主干同步检查 (Unit 3 完成后) ---
+主干偏离: 8 commits behind main ⚠️
+main 上新增: db/migrate/20260420_add_index.rb, config/routes.rb
+
+建议: 暂停实现，先 rebase main 再继续。[同步 / 跳过]
+```
+
+用户选"跳过"时记录，Phase 6 前**强制**再检查一次。
+
+### Phase 6 前强制同步
+
+进入 Phase 6 (`dev:ship`) 前，主干同步是**强制前置步骤**（不可跳过）：
+
+```bash
+git fetch origin main
+BEHIND=$(git rev-list --count HEAD..origin/main 2>/dev/null || echo 0)
+if [ "$BEHIND" -gt 0 ]; then
+  echo "合并前必须同步主干。当前落后 $BEHIND 个提交。"
+  echo "执行: git rebase origin/main"
+fi
+```
+
+rebase 后如有冲突，协助用户解决后再继续交付流程。
 
 ## Resume Intelligence
 
@@ -222,9 +277,9 @@ dev:flow (main line of work)
   |             /dev:flow in a new worktree for parallel development."
   |
   +-- User says "pause this, work on something else"
-  |   -> 调用 `/gstack-checkpoint` 保存当前状态 (branch, progress, decisions)
+  |   -> 调用 `/gstack-context-save` 保存当前状态 (branch, progress, decisions)
   |   -> Start new /dev:flow for the new work item
-  |   -> When done, `/gstack-checkpoint` resume 恢复暂停的流程
+  |   -> When done, `/gstack-context-restore` 恢复暂停的流程
 ```
 
 ## Phase Skip Rules
@@ -268,7 +323,7 @@ dev:flow 检测:
 Phase 1 (/dev:discover):
   场景: 明确功能，中等范围 -> Route C (Standard brainstorm)
   -> ce:brainstorm 产出需求文档 R1-R4
-  -> document-review: 通过（2 轮循环，第 1 轮修复 1 个一致性问题）
+  -> ce:doc-review: 通过（2 轮循环，第 1 轮修复 1 个一致性问题）
   -> 检测到 UI: 是（通知设置页面）
   GATE: "需求已就绪。检测到 UI。进入 Phase 2?"
 
@@ -280,7 +335,7 @@ Phase 2 (/dev:design):
 
 Phase 3 (/dev:plan):
   -> ce:plan 产出 4 个实施单元
-  -> document-review: 通过
+  -> ce:doc-review: 通过
   -> 检测到 4 单元 -> plan-eng-review + plan-design-review
   -> plan-eng-review: CLEARED
   GATE: "计划已审查通过。进入 Phase 4?"
@@ -289,22 +344,23 @@ Phase 4 (/dev:code):
   -> ce:work 检测 4 单元，2 个独立 -> 并行+串行策略
   -> Unit 1-2 (并行): 邮件服务 + 通知模型
   -> Unit 3-4 (串行): 控制器 + 设置页面
-  -> ce:review mode:autofix: 修复 2 个 safe_auto 问题
+  -> ce:code-review mode:autofix: 修复 2 个 safe_auto 问题
   GATE: "所有单元完成。测试通过。进入 Phase 5?"
 
 Phase 5 (/dev:verify):
-  -> ce:review interactive: 8 个 persona 激活（含邮件处理的 security）
+  -> ce:code-review interactive: 8 个 persona 激活（含邮件处理的 security）
   -> 第 1 轮: 发现 1 个 P1 (邮件注入风险) + 1 个 P2
   -> 修复 -> 第 2 轮: 零 P0/P1 -> 通过
-  -> test-browser: 通知设置页面测试通过
+  -> ce:test-browser: 通知设置页面测试通过
   GATE: "验证通过。进入 Phase 6?"
 
 Phase 6 (/dev:ship):
-  场景: 无版本文件 + 上游 ce:review 已确认 -> Path A
-  -> git-commit-push-pr: PR 已创建
-  -> feature-video: 通知流程录屏
-  -> land-and-deploy: 合并、部署、金丝雀健康
-  GATE: "已发布并验证。进入 Phase 7?"
+  场景: 无版本文件 -> Path A (squash 合并回 main)
+  -> 主干同步: rebase origin/main，无冲突
+  -> squash merge: 展示 diff 摘要 + 拟定 commit message
+  -> 用户确认 -> git commit -m "新增账号禁用时的邮件通知"
+  -> push to main，清理 feature branch
+  GATE: "已合并到 main。进入 Phase 7?"
 
 Phase 7 (/dev:learn):
   场景: 功能已发布，邮件服务模式是新的 -> Route A

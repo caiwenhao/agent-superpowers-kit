@@ -15,9 +15,9 @@ description: "Use when a requirements doc exists and it is time to create an imp
 ## 通用规则
 
 1. **始终用中文与用户交流。** 所有状态报告、GATE 提示、路由宣告均使用中文。
-2. **工作区前置（强制）。** 在创建任何计划文档或代码之前，执行 `git rev-parse --abbrev-ref HEAD` 检查当前分支。若在 main/master 或未进入任务专属 worktree，STOP 并调用 `compound-engineering:git-worktree`（或 `superpowers:using-git-worktrees`）创建工作区后再继续。
+2. **工作区前置（强制）。** 在创建任何计划文档或代码之前，执行 `git rev-parse --abbrev-ref HEAD` 检查当前分支。若在 main/master 或未进入任务专属 worktree，STOP 并调用 `compound-engineering:ce-worktree`（或 `superpowers:using-git-worktrees`）创建工作区后再继续。
 3. **提交由用户触发。** 本阶段只写文件、运行只读命令，不执行 `git commit` / `git push` / 创建 PR。提交动作只在 `/dev:ship`（Phase 6）由用户显式触发。
-4. **Review 多轮循环。** document-review 和 plan-eng-review 均执行多轮循环，直到零 P0/P1 或 3 轮上限。
+4. **Review 多轮循环。** ce:doc-review 和 plan-eng-review 均执行多轮循环，直到零 P0/P1 或 3 轮上限。
 
 ## Overview
 
@@ -88,11 +88,11 @@ Plan created by ce:plan
    - Output: `docs/plans/YYYY-MM-DD-NNN-<type>-<name>-plan.md`（frontmatter 必须含 `status: active`）
    - Scope auto-classified: Lightweight / Standard / Deep
 
-3. **REVIEW (Layer 1): `document-review` 多轮循环** (内嵌在 `ce:plan` Phase 5)
+3. **REVIEW (Layer 1): `ce:doc-review` 多轮循环** (内嵌在 `ce:plan` Phase 5)
    - 多人格审查: coherence / feasibility / scope-guardian
    - **循环**: 审查 -> 修复 -> 再审查，直到零 P0/P1 或 3 轮上限
 
-   **GATE: 计划文件存在且通过 document-review（零 P0/P1）。**
+   **GATE: 计划文件存在且通过 ce:doc-review（零 P0/P1）。**
 
 4. **Detect review depth** from plan's Implementation Unit count (Signal 3). Announce (中文):
    - "计划有 12 个单元 -- 运行完整 autoplan 审查流水线。"

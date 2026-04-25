@@ -7,12 +7,12 @@ This directory is the **canonical source** for the 8-phase `dev:*` development w
 | Phase | Skill | Primary lane |
 |---|---|---|
 | 入口编排 | `dev-flow` | inspect repo state, resume or route |
-| 发现 | `dev-discover` | `ce:ideate` / `office-hours` / `ce:brainstorm` / `document-review` |
+| 发现 | `dev-discover` | `ce:ideate` / `office-hours` / `ce:brainstorm` / `ce:doc-review` |
 | 设计 | `dev-design` | `design-consultation` / `design-shotgun` / `plan-design-review` |
 | 规划 | `dev-plan` | `ce:plan` + `plan-eng-review` (+ `autoplan` / `plan-design-review`) |
 | 实现 | `dev-code` | `ce:work` (+ `test-driven-development` / `systematic-debugging` / `frontend-design` / `dev-browser`) → 收尾 `/simplify`（Phase 4→5 过渡关）|
-| 验证 | `dev-verify` | `ce:review` (+ `test-browser` / `dev-browser` / `qa` / `design-review` / `cso` / `benchmark`) |
-| 交付 | `dev-ship` | `git-commit-push-pr` or `ship`, then `land-and-deploy` (+ `dev-browser` canary 烟测) |
+| 验证 | `dev-verify` | `ce:code-review` (+ `ce:test-browser` / `dev-browser` / `qa` / `design-review` / `cso` / `benchmark`) |
+| 交付 | `dev-ship` | `ce:commit-push-pr` or `ship`, then `land-and-deploy` (+ `dev-browser` canary 烟测) |
 | 沉淀 | `dev-learn` | `ce:compound` / `retro` / `ce:compound-refresh` / `writing-skills` |
 | 初始化 | `dev-init` | 写 CLAUDE.md preamble + 建 AGENTS.md 软链 + 迁移仓库级技能目录到 cross-harness 双软链布局,收尾调 dev:doctor |
 | 诊断 | `dev-doctor` | 扫描下游依赖安装状态(Claude Code + Codex 两侧路径),报告缺失 + phase 降级评估(只读) |
@@ -33,7 +33,7 @@ Each runtime path's `SKILL.md` is a symlink to `claude-skills/<name>/SKILL.md`, 
 ## Cross-harness Compatibility
 
 - **SKILL.md format** (frontmatter + Markdown): identical across Claude Code and Codex.
-- **Downstream skill references** (e.g. `ce:brainstorm`, `gstack-*`, `compound-engineering:git-worktree`): assume a Claude Code environment. On Codex, skills without a Codex equivalent degrade gracefully (user executes the intent manually or picks a `superpowers:*` fallback where provided).
+- **Downstream skill references** (e.g. `ce:brainstorm`, `gstack-*`, `compound-engineering:ce-worktree`): assume a Claude Code environment. On Codex, skills without a Codex equivalent degrade gracefully (user executes the intent manually or picks a `superpowers:*` fallback where provided).
 - **No Claude-Code-only tool calls** (`Agent`, `TodoWrite`, `Skill(...)`) appear in the skill bodies — all invocations are described in neutral prose.
 
 ## Iron Laws (across all phases)

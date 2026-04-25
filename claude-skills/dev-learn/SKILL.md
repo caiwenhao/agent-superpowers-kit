@@ -15,7 +15,7 @@ description: "Use after solving a significant problem, shipping a feature, or co
 ## 通用规则
 
 1. **始终用中文与用户交流。** 所有状态报告、路由宣告均使用中文。
-2. **工作区前置（强制）。** 在写入任何知识文档（`docs/solutions/`、`learnings.jsonl`、wiki 页等）之前，执行 `git rev-parse --abbrev-ref HEAD` 检查当前分支。若在 main/master 或未进入任务专属 worktree，STOP 并调用 `compound-engineering:git-worktree`（或 `superpowers:using-git-worktrees`）创建工作区后再继续。
+2. **工作区前置（强制）。** 在写入任何知识文档（`docs/solutions/`、`learnings.jsonl`、wiki 页等）之前，执行 `git rev-parse --abbrev-ref HEAD` 检查当前分支。若在 main/master 或未进入任务专属 worktree，STOP 并调用 `compound-engineering:ce-worktree`（或 `superpowers:using-git-worktrees`）创建工作区后再继续。
 3. **提交由用户触发。** 本阶段只写文件，不执行 `git commit` / `git push` / 创建 PR。知识文档的提交由用户显式触发（通常在后续 `/dev:ship` 或直接说"提交/commit/push"时）。
 4. **Review 多轮循环。** `ce:compound` Phase 3 的可选领域审查执行修复循环。
 
@@ -180,7 +180,7 @@ Completed work
 Phase 4 (ce:work) -- solve problem --> Phase 7 (ce:compound) -- docs/solutions/
                                                                       |
 Phase 3 (ce:plan) <-- learnings-researcher auto-searches -------------+
-Phase 5 (ce:review) <-- learnings-researcher always-on ---------------+
+Phase 5 (ce:code-review) <-- learnings-researcher always-on ---------------+
 All gstack skills <-- preamble auto-searches learnings.jsonl ---------+
 ```
 
