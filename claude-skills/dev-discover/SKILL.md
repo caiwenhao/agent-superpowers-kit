@@ -3,6 +3,13 @@ name: dev-discover
 description: "Use when starting any new work: a feature idea, vague request, product question, or 'I want to build X'. Detects intent clarity and routes to the right discovery skill, always producing a requirements doc with R-IDs before planning begins."
 ---
 
+<SUPERVISE-CHECK>
+执行前自检（Codex 环境必读，Claude Code 环境由 L1 hook 覆盖）：
+1. 铁律 6（工作区）：运行 `git rev-parse --abbrev-ref HEAD`。若在 main/master 且不在 `.worktrees/` 子路径 → STOP，创建 worktree。
+2. 铁律 7（提交触发）：本 phase 禁止 `git commit` / `git push` / `gh pr create`。提交仅在 `/dev:ship` 中由用户触发。
+3. 铁律 4（证据先行）：声称"完成/通过"前必须有测试命令的实际输出作为证据。
+</SUPERVISE-CHECK>
+
 # Phase 1: Discover -- "做什么"
 
 ## 通用规则
