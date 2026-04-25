@@ -1,0 +1,210 @@
+{
+  "reviewer": "correctness",
+  "findings": [
+    {
+      "title": "iron_law_guard.py: Iron Law 4 check is entirely unimplemented (stub returns None)",
+      "severity": "P1",
+      "file": "scripts/supervise/iron_law_guard.py",
+      "line": 157,
+      "confidence": 1.0,
+      "autofix_class": "manual",
+      "owner": "human",
+      "requires_verification": false,
+      "pre_existing": false,
+      "suggested_fix": "The function _check_iron_law_4_posttooluse() contains only a comment and `pass`. The intent (R1 in the plan) requires WARN when an assertion keyword appears without a preceding test command in recent tool history. Either implement it using the transcript scan approach already used in _infer_current_phase(), or remove the function and the dead reference in main() so the stub does not create a false impression of coverage."
+    },
+    {
+      "title": "iron_law_guard.py: _check_iron_law_4_posttooluse() is never called from main()",
+      "severity": "P2",
+      "file": "scripts/supervise/iron_law_guard.py",
+      "line": 186,
+      "confidence": 1.0,
+      "autofix_class": "safe_auto",
+      "owner": "review-fixer",
+      "requires_verification": false,
+      "pre_existing": false,
+      "suggested_fix": "The comment at line 186 says 'Iron Law 4 check is complex and deferred' but the function exists and is never invoked. Either call it or delete it to avoid dead code confusion. If deferring, remove the function body entirely and leave only a TODO comment."
+    },
+    {
+      "title": "iron_law_guard.py: _is_in_worktree() uses string matching on CWD, bypassed by symlinks or unusual paths",
+      "severity": "P2",
+      "file": "scripts/supervise/iron_law_guard.py",
+      "line": 91,
+      "confidence": 0.85,
+      "autofix_class": "gated_auto",
+      "owner": "review-fixer",
+      "requires_verification": true,
+      "pre_existing": false,
+      "suggested_fix": "os.getcwd() returns the logical path which may not contain '/.worktrees/' if the user cd'd into the worktree via a symlink or if the worktree was created at a non-standard path. Use `git rev-parse --git-dir` or `git worktree list` to reliably detect worktree membership instead of substring matching."
+    },
+    {
+      "title": "iron_law_guard.py: Iron Law 7 pattern matching is substring-only, misses quoted/escaped variants",
+      "severity": "P2",
+      "file": "scripts/supervise/iron_law_guard.py",
+      "line": 151,
+      "confidence": 0.8,
+      "autofix_class": "gated_auto",
+      "owner": "review-fixer",
+      "requires_verification": true,
+      "pre_existing": false,
+      "suggested_fix": "COMMIT_PATTERNS uses plain `in` substring check. Commands like `git  commit` (extra space), `GIT COMMIT` (uppercase), or `git commit --amend` are matched correctly, but `$(git commit ...)` embedded in a script or `git -C /path commit` would also match. More critically, `git checkout` contains no pattern but `git push --force` does match 'git push' — this is correct. However, `git commit-msg` (a hook name) would also match 'git commit'. Consider using regex word-boundary matching: `re.search(r'\\bgit\\s+commit\\b', command)`."
+    },
+    {
+      "title": "extract_signals.py: _detect_redos() emits duplicate signals for the same file/window due to nested loop logic",
+      "severity": "P1",
+      "file": "scripts/supervise/extract_signals.py",
+      "line": 164,
+      "confidence": 0.9,
+      "autofix_class": "gated_auto",
+      "owner": "review-fixer",
+      "requires_verification": true,
+      "pre_existing": false,
+      "suggested_fix": "The outer loop iterates `start` from 0 to len(edits)-3. For each start, the inner loop grows `window` until it hits 3 edits within 600s, emits a signal, then `break`s the inner loop. The `else/continue/break` pattern on lines 191-193 is meant to break the outer loop too once a signal is found for this file. However, the `else` clause on the `for j` loop only executes when the inner loop completes WITHOUT a break — meaning it only fires when NO window was found. When a window IS found (inner break), the outer `break` on line 193 fires correctly. This logic is correct but extremely fragile and non-obvious. The real bug: if timestamps are invalid (ValueError/TypeError path, line 181), the fallback emits a signal for `window` of size exactly 3 (the first window), then breaks — but `window` at that point only has 3 entries regardless of total edit count, so the evidence string always says '3 times' even if the file was edited 10 times. Fix: capture `len(edits)` for the no-timestamp fallback evidence string."
+    },
+    {
+      "title": "extract_signals.py: _detect_interruptions() over-fires — every user message after any tool call is flagged",
+      "severity": "P1",
+      "file": "scripts/supervise/extract_signals.py",
+      "line": 123,
+      "confidence": 0.95,
+      "autofix_class": "manual",
+      "owner": "human",
+      "requires_verification": true,
+      "pre_existing": false,
+      "suggested_fix": "The intent is to detect user messages that interrupt a mid-sequence tool run. The current implementation flags ANY user message that follows an assistant message containing tool_use blocks — which is the normal conversational pattern (assistant uses tools, then user responds). This will produce massive false-positive rates in normal sessions. The signal should require evidence that the tool sequence was genuinely interrupted: e.g., the user message arrives before a tool_result entry for the preceding tool_use, or the assistant's next message abandons the prior tool chain. Consider checking whether the tool_result for the last tool_use in `prev` is missing (i.e., the sequence was cut short)."
+    },
+    {
+      "title": "extract_signals.py: _detect_rollbacks() pattern is too narrow — requires strict A-U-A triplet with no intervening entries",
+      "severity": "P2",
+      "file": "scripts/supervise/extract_signals.py",
+      "line": 96,
+      "confidence": 0.85,
+      "autofix_class": "manual",
+      "owner": "human",
+      "requires_verification": true,
+      "pre_existing": false,
+      "suggested_fix": "Real rollback patterns often have tool_result entries between assistant and user messages (e.g., A -> tool_result -> U -> A). The strict `entries[i-2].type == assistant` check will miss these because entries[i-2] would be a tool_result entry. The pattern should scan backwards for the nearest assistant-with-edits rather than requiring it to be exactly 2 positions back."
+    },
+    {
+      "title": "scan_history.py: _get_session_timestamp() may return a naive datetime, causing comparison failure with timezone-aware cutoff",
+      "severity": "P1",
+      "file": "scripts/supervise/scan_history.py",
+      "line": 68,
+      "confidence": 0.9,
+      "autofix_class": "safe_auto",
+      "owner": "review-fixer",
+      "requires_verification": false,
+      "pre_existing": false,
+      "suggested_fix": "On line 70, `datetime.fromisoformat(ts)` returns a naive datetime if the ISO string has no timezone suffix (e.g., '2026-04-25T10:00:00'). On line 82, `cutoff` is timezone-aware (uses `datetime.now(timezone.utc)`). Comparing aware vs naive datetimes raises `TypeError: can't compare offset-naive and offset-aware datetimes`. Fix: after fromisoformat, if the result has no tzinfo, attach UTC: `dt = dt.replace(tzinfo=timezone.utc)`."
+    },
+    {
+      "title": "scan_history.py: _enumerate_sessions() silently skips sessions with no parseable timestamp, potentially including very old sessions",
+      "severity": "P2",
+      "file": "scripts/supervise/scan_history.py",
+      "line": 95,
+      "confidence": 0.8,
+      "autofix_class": "advisory",
+      "owner": "human",
+      "requires_verification": false,
+      "pre_existing": false,
+      "suggested_fix": "When `_get_session_timestamp()` returns None (line 95), the `if ts and ts < cutoff: continue` check is skipped, so the session is included regardless of age. This means sessions with unreadable timestamps are always included, potentially pulling in very old data. Consider treating None timestamp as 'unknown age' and either excluding or including with a warning."
+    },
+    {
+      "title": "scan_history.py: relative import of extract_signals assumes scripts are run from the same directory",
+      "severity": "P2",
+      "file": "scripts/supervise/scan_history.py",
+      "line": 23,
+      "confidence": 0.95,
+      "autofix_class": "safe_auto",
+      "owner": "review-fixer",
+      "requires_verification": false,
+      "pre_existing": false,
+      "suggested_fix": "`from extract_signals import extract_signals` is a bare module import that only works if the CWD is `scripts/supervise/` or if that directory is on sys.path. The SKILL.md invocation `python3 <repo>/scripts/supervise/scan_history.py` runs from an arbitrary CWD, so this import will fail with ModuleNotFoundError. Fix: add `sys.path.insert(0, str(Path(__file__).parent))` before the import, or use a relative import with a package structure (the `__init__.py` exists but is not leveraged)."
+    },
+    {
+      "title": "iron_law_guard.py: _infer_current_phase() reads the transcript file without closing it explicitly (no context manager)",
+      "severity": "P3",
+      "file": "scripts/supervise/iron_law_guard.py",
+      "line": 113,
+      "confidence": 0.7,
+      "autofix_class": "safe_auto",
+      "owner": "review-fixer",
+      "requires_verification": false,
+      "pre_existing": false,
+      "suggested_fix": "Line 113 uses `with open(...) as f:` — this IS a context manager, so the handle is properly closed. However, the function reads ALL lines into memory (`f.readlines()`) for potentially large transcript files, then only uses the last 100. Use `collections.deque(f, maxlen=100)` or seek-based tail reading to avoid loading the full file."
+    },
+    {
+      "title": "extract_signals.py: _detect_l1_events() reads entire incidents file without size guard",
+      "severity": "P3",
+      "file": "scripts/supervise/extract_signals.py",
+      "line": 202,
+      "confidence": 0.7,
+      "autofix_class": "advisory",
+      "owner": "human",
+      "requires_verification": false,
+      "pre_existing": false,
+      "suggested_fix": "The incidents file at ~/.claude/state/supervise-incidents.jsonl grows unboundedly. Over time, reading the entire file for every L2 extraction call will become slow. Consider adding a time-based cutoff (skip entries older than 30 days) or limiting to the last N lines."
+    },
+    {
+      "title": "dev-supervise SKILL.md: Step 3 save-report logic is not implemented in scan_history.py — script only prints to stdout",
+      "severity": "P1",
+      "file": "claude-skills/dev-supervise/SKILL.md",
+      "line": 37,
+      "confidence": 1.0,
+      "autofix_class": "manual",
+      "owner": "human",
+      "requires_verification": false,
+      "pre_existing": false,
+      "suggested_fix": "SKILL.md step 3 says the report should be saved to `docs/supervise/aggregated/<date>.md` (project scope) or `~/.claude/skill-feedback/aggregated-<date>.md` (global scope). scan_history.py only prints to stdout and has no file-writing logic. The SKILL.md workflow relies on the AI agent to redirect stdout to the file, but this is fragile and not documented as the agent's responsibility. Either add `--output <path>` to scan_history.py, or make the save step explicit in SKILL.md as a shell redirect."
+    },
+    {
+      "title": "dev-learn SKILL.md: L2 substep references `scripts/supervise/extract_signals.py` without specifying how to find the current session transcript path",
+      "severity": "P2",
+      "file": "claude-skills/dev-learn/SKILL.md",
+      "line": 115,
+      "confidence": 0.9,
+      "autofix_class": "manual",
+      "owner": "human",
+      "requires_verification": false,
+      "pre_existing": false,
+      "suggested_fix": "The substep says 'run extract_signals.py processing current session transcript' but does not specify how the agent should determine the current session transcript path. The agent would need to know the CLAUDE_PROJECT_DIR env var and find the most recent .jsonl file — this logic exists in iron_law_guard.py's _infer_current_phase() but is not exposed as a utility. Add a note: 'transcript path = $(ls -t $CLAUDE_PROJECT_DIR/conversations/*.jsonl | head -1)' or expose a helper."
+    },
+    {
+      "title": "iron_law_guard.py: race condition in _log_incident() — concurrent hook invocations may interleave writes",
+      "severity": "P3",
+      "file": "scripts/supervise/iron_law_guard.py",
+      "line": 76,
+      "confidence": 0.65,
+      "autofix_class": "advisory",
+      "owner": "human",
+      "requires_verification": false,
+      "pre_existing": false,
+      "suggested_fix": "The append write `f.write(json.dumps(entry) + '\\n')` is not atomic. If two hook invocations run concurrently (e.g., parallel tool calls), two processes may interleave their writes, producing a corrupted JSONL line. Use `fcntl.flock(f, fcntl.LOCK_EX)` before writing on Linux, or write to a temp file and rename atomically. Low priority since Claude Code typically serializes tool calls, but worth noting."
+    },
+    {
+      "title": "extract_signals.py: _get_session_id() only checks first 5 entries — may miss sessionId if entries are tool_result or system types",
+      "severity": "P3",
+      "file": "scripts/supervise/extract_signals.py",
+      "line": 51,
+      "confidence": 0.75,
+      "autofix_class": "safe_auto",
+      "owner": "review-fixer",
+      "requires_verification": false,
+      "pre_existing": false,
+      "suggested_fix": "Checking only the first 5 entries for sessionId is fragile if the transcript starts with system/tool_result entries that lack sessionId. Increase the scan window to 20 entries, or scan all entries until sessionId is found (with an early-exit once found)."
+    }
+  ],
+  "residual_risks": [
+    "Iron Law 4 is advertised as enforced by L1 but is entirely unimplemented. Users relying on this guard for evidence-before-assertion enforcement will get no protection.",
+    "The interruption signal detector will produce extremely high false-positive rates in normal sessions, potentially making L3 reports noisy and untrustworthy.",
+    "scan_history.py will fail at import time when invoked from any directory other than scripts/supervise/ due to the bare `from extract_signals import extract_signals` import.",
+    "Timezone-naive vs timezone-aware datetime comparison in scan_history.py will raise TypeError at runtime on transcripts with naive ISO timestamps, crashing the entire L3 scan."
+  ],
+  "testing_gaps": [
+    "No unit tests for _detect_interruptions(), _detect_rollbacks(), or _detect_redos() with synthetic JSONL fixtures covering edge cases (tool_result entries between A-U-A, missing timestamps, single-entry transcripts).",
+    "No test for iron_law_guard.py's behavior when stdin is empty, malformed JSON, or when git subprocess times out.",
+    "No test for scan_history.py's --scope project filtering when repo_path has a trailing slash vs no trailing slash (startswith comparison).",
+    "No integration test verifying that the hook registered in .claude/settings.json actually receives the correct JSON schema from Claude Code's PreToolUse event.",
+    "No test for the naive/aware datetime comparison bug in _enumerate_sessions()."
+  ]
+}

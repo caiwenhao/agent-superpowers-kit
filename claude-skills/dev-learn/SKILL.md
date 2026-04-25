@@ -3,6 +3,13 @@ name: dev-learn
 description: "Use after solving a significant problem, shipping a feature, or completing a sprint. Detects the trigger type and routes to the right knowledge capture skill: ce:compound for problems, retro for sprints, writing-skills for reusable methods."
 ---
 
+<SUPERVISE-CHECK>
+执行前自检（Codex 环境必读，Claude Code 环境由 L1 hook 覆盖）：
+1. 铁律 6（工作区）：运行 `git rev-parse --abbrev-ref HEAD`。若在 main/master 且不在 `.worktrees/` 子路径 → STOP，创建 worktree。
+2. 铁律 7（提交触发）：本 phase 禁止 `git commit` / `git push` / `gh pr create`。提交仅在 `/dev:ship` 中由用户触发。
+3. 铁律 4（证据先行）：声称"完成/通过"前必须有测试命令的实际输出作为证据。
+</SUPERVISE-CHECK>
+
 # Phase 7: Learn -- "学到什么"
 
 ## 通用规则
@@ -98,6 +105,20 @@ Completed work
 ```
 
 ## Workflow
+
+0. **Skill self-review (L2 信号收集)**
+
+   在执行任何 Route 之前，先收集本 session 的 skill 执行信号。
+
+   宣告（中文）："正在收集本 session 的 skill 执行信号..."
+
+   - 运行 `scripts/supervise/extract_signals.py` 处理当前 session transcript
+   - Transcript 路径发现：`ls -t ~/.claude/projects/$(pwd | tr '/' '-')/conversations/*.jsonl 2>/dev/null | head -1`，或使用 `$CLAUDE_PROJECT_DIR/conversations/` 下最新的 `.jsonl` 文件
+   - 若脚本不存在或执行失败 → 静默跳过，不打断后续流程
+   - 若提取到信号 → 按 skill 分组追加到 `docs/supervise/feedback/<skill-name>.md`
+   - 每条格式：`- YYYY-MM-DD / sess: <path> / 信号: <type> / 证据: <evidence> / phase: <phase>`
+   - 若无信号 → 静默跳过，不创建空 feedback 文件
+   - 确保 `docs/supervise/feedback/` 目录存在（不存在则创建）
 
 1. **Detect scene** and announce (中文):
    - "Bug 修复伴随根因分析 -- 记录解决方案。"

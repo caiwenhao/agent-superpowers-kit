@@ -3,6 +3,13 @@ name: dev-flow
 description: "Use when starting any development task, or when unsure which dev: phase to begin with. Detects the current project state, identifies which phase the work is in, and orchestrates the full discover->design->plan->code->verify->ship->learn pipeline automatically. The single entry point for the entire AI Coding workflow."
 ---
 
+<SUPERVISE-CHECK>
+执行前自检（Codex 环境必读，Claude Code 环境由 L1 hook 覆盖）：
+1. 铁律 6（工作区）：运行 `git rev-parse --abbrev-ref HEAD`。若在 main/master 且不在 `.worktrees/` 子路径 → STOP，创建 worktree。
+2. 铁律 7（提交触发）：本 phase 禁止 `git commit` / `git push` / `gh pr create`。提交仅在 `/dev:ship` 中由用户触发。
+3. 铁律 4（证据先行）：声称"完成/通过"前必须有测试命令的实际输出作为证据。
+</SUPERVISE-CHECK>
+
 # dev:flow -- 智能研发编排器
 
 ## 通用规则

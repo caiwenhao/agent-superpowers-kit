@@ -1,0 +1,148 @@
+{
+  "reviewer": "project-standards",
+  "findings": [
+    {
+      "title": "dev-supervise not listed in CLAUDE.md skill inventory",
+      "severity": "P2",
+      "file": "CLAUDE.md",
+      "line": 7,
+      "confidence": 0.95,
+      "autofix_class": "safe_auto",
+      "owner": "review-fixer",
+      "requires_verification": false,
+      "pre_existing": false,
+      "suggested_fix": "Update CLAUDE.md line 7 to read '8 phase skills + 3 utility skills: dev-init for bootstrap, dev-doctor for diagnosis, and dev-supervise for meta-supervision' and add dev-supervise to the claude-skills/ table row (line 15)."
+    },
+    {
+      "title": "dev-supervise not listed in claude-skills/README.md bundle table",
+      "severity": "P2",
+      "file": "claude-skills/README.md",
+      "line": null,
+      "confidence": 0.95,
+      "autofix_class": "safe_auto",
+      "owner": "review-fixer",
+      "requires_verification": false,
+      "pre_existing": false,
+      "suggested_fix": "Add a row for dev-supervise to the Bundle table in claude-skills/README.md: '| 元监督 | `dev-supervise` | `scripts/supervise/scan_history.py` |'."
+    },
+    {
+      "title": "docs/ai-coding-workflow.md not updated to reference dev-supervise or three-layer supervision",
+      "severity": "P2",
+      "file": "docs/ai-coding-workflow.md",
+      "line": null,
+      "confidence": 0.90,
+      "autofix_class": "gated_auto",
+      "owner": "review-fixer",
+      "requires_verification": true,
+      "pre_existing": false,
+      "suggested_fix": "Per CLAUDE.md editing workflow: 'If you change routing logic, update docs/ai-coding-workflow.md in the same change.' Add a section describing the three-layer supervision mechanism (L1 hook, L2 session review, L3 historical scan) and reference dev-supervise as a utility skill alongside dev-init and dev-doctor."
+    },
+    {
+      "title": "L1 hook (iron_law_guard.py) not registered in any settings.json",
+      "severity": "P1",
+      "file": "docs/supervise/README.md",
+      "line": 15,
+      "confidence": 0.98,
+      "autofix_class": "gated_auto",
+      "owner": "human",
+      "requires_verification": true,
+      "pre_existing": false,
+      "suggested_fix": "The L1 hook is documented in docs/supervise/README.md but not wired into .claude/settings.json. Either: (a) add the PreToolUse hook registration to .claude/settings.json with the absolute path, or (b) add a setup step to dev-supervise SKILL.md instructing users to run /update-config to register the hook. Without registration, L1 enforcement is entirely absent."
+    },
+    {
+      "title": "dev-supervise SKILL.md omits L1 hook setup instructions",
+      "severity": "P2",
+      "file": "claude-skills/dev-supervise/SKILL.md",
+      "line": null,
+      "confidence": 0.90,
+      "autofix_class": "safe_auto",
+      "owner": "review-fixer",
+      "requires_verification": false,
+      "pre_existing": false,
+      "suggested_fix": "Add a '## Setup' section to claude-skills/dev-supervise/SKILL.md that references docs/supervise/README.md for L1 hook registration, or inline the /update-config instruction. Users invoking /dev:supervise need to know L1 requires a one-time hook setup."
+    },
+    {
+      "title": "scan_history.py workflow step 3 ambiguity: script outputs to stdout but SKILL.md implies file save",
+      "severity": "P2",
+      "file": "claude-skills/dev-supervise/SKILL.md",
+      "line": 36,
+      "confidence": 0.85,
+      "autofix_class": "safe_auto",
+      "owner": "review-fixer",
+      "requires_verification": false,
+      "pre_existing": false,
+      "suggested_fix": "Either: (a) update the bash command in Workflow step 2 to include output redirection (e.g., '> docs/supervise/aggregated/$(date +%Y-%m-%d).md'), or (b) add a --output flag to scan_history.py. Currently step 2 and step 3 are disconnected — the script prints to stdout but step 3 says '保存报告' without showing how the AI agent should redirect the output."
+    },
+    {
+      "title": "iron_law_guard.py false-positive risk: phase='unknown' blocks git commit even in dev-ship context",
+      "severity": "P1",
+      "file": "scripts/supervise/iron_law_guard.py",
+      "line": 148,
+      "confidence": 0.92,
+      "autofix_class": "gated_auto",
+      "owner": "review-fixer",
+      "requires_verification": true,
+      "pre_existing": false,
+      "suggested_fix": "When _infer_current_phase() returns 'unknown', the hook should not block git commit/push/pr (fail-open for unknown phase). Change line 148 to: 'if phase in [\"6\", \"unknown\"]: return' — or alternatively, when phase is unknown, downgrade from deny to warn/ask so the user can confirm intent. The current logic will block legitimate dev-ship commits whenever transcript inference fails."
+    },
+    {
+      "title": "scan_history.py uses bare relative import 'from extract_signals import extract_signals'",
+      "severity": "P2",
+      "file": "scripts/supervise/scan_history.py",
+      "line": 23,
+      "confidence": 0.88,
+      "autofix_class": "safe_auto",
+      "owner": "review-fixer",
+      "requires_verification": false,
+      "pre_existing": false,
+      "suggested_fix": "The SKILL.md workflow runs 'python3 <repo>/scripts/supervise/scan_history.py' which sets CWD to wherever the user is, not scripts/supervise/. The bare import will fail unless the user runs from scripts/supervise/ or the directory is on sys.path. Fix: add 'sys.path.insert(0, os.path.dirname(__file__))' before the import, or use a relative import with package structure."
+    },
+    {
+      "title": "SUPERVISE-CHECK block placed between YAML frontmatter and first heading — non-standard SKILL.md structure",
+      "severity": "P3",
+      "file": "claude-skills/dev-discover/SKILL.md",
+      "line": 6,
+      "confidence": 0.75,
+      "autofix_class": "advisory",
+      "owner": "human",
+      "requires_verification": false,
+      "pre_existing": false,
+      "suggested_fix": "The SUPERVISE-CHECK XML block is inserted between the YAML frontmatter and the first Markdown heading across all 8 dev-* skills. This is consistent and readable, but the block uses raw XML tags not defined in any schema. Advisory: document this convention in claude-skills/README.md so future skill authors know it is intentional."
+    },
+    {
+      "title": "dev-supervise SKILL.md does not reference docs/supervise/README.md for three-layer architecture overview",
+      "severity": "P3",
+      "file": "claude-skills/dev-supervise/SKILL.md",
+      "line": null,
+      "confidence": 0.80,
+      "autofix_class": "safe_auto",
+      "owner": "review-fixer",
+      "requires_verification": false,
+      "pre_existing": false,
+      "suggested_fix": "Add a reference to docs/supervise/README.md in the SKILL.md Overview section so users can find the full three-layer architecture description and L1 hook registration instructions."
+    },
+    {
+      "title": "dev-doctor not updated to check for L1 hook registration",
+      "severity": "P3",
+      "file": "claude-skills/dev-doctor/SKILL.md",
+      "line": null,
+      "confidence": 0.80,
+      "autofix_class": "advisory",
+      "owner": "human",
+      "requires_verification": false,
+      "pre_existing": false,
+      "suggested_fix": "dev-doctor is the dependency health check utility. It should be updated to verify that iron_law_guard.py is registered as a PreToolUse hook in .claude/settings.json, and report if it is missing. This is consistent with dev-doctor's role of scanning downstream dependency installation state."
+    }
+  ],
+  "residual_risks": [
+    "L1 hook is not registered anywhere — the entire real-time iron law enforcement layer is inert until a user manually follows docs/supervise/README.md setup instructions. This is the highest operational risk.",
+    "Phase inference in iron_law_guard.py reads the most recent transcript file from CLAUDE_PROJECT_DIR/conversations/ — this path may not exist in all Claude Code versions or project layouts, silently degrading to 'unknown' phase and potentially blocking dev-ship commits.",
+    "scan_history.py relative import will fail when invoked via the SKILL.md workflow command unless sys.path is patched or the user runs from the scripts/supervise/ directory."
+  ],
+  "testing_gaps": [
+    "No unit tests for extract_signals.py signal detection logic (rollback, interruption, redo, l1_event).",
+    "No unit tests for iron_law_guard.py iron law enforcement (law 6, law 7, phase inference).",
+    "No integration test verifying the full L3 scan pipeline (scan_history.py -> extract_signals.py -> report generation).",
+    "No test for the edge case where phase='unknown' in iron_law_guard.py to confirm false-positive behavior."
+  ]
+}
