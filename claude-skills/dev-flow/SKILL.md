@@ -80,15 +80,23 @@ gh pr view --json state,title 2>&1
 | Uncommitted code changes, no review evidence | Phase 5 (verify) -- needs review |
 | Open PR with unresolved review threads | Phase 6 (ship) -- resolve feedback, then ship |
 | Plan with `status: active`, all units checked, no code changes | Phase 5 (verify) -- confirm completion |
-| Nothing in progress | Check Signal 2 |
+| Nothing in progress | Check Signal 2a |
 
-### Signal 2: What did the user provide?
+### Signal 2a: Is this a bug fix?
+
+检测关键词：bug / fix / 修复 / 报错 / crash / regression / broken / error when / stack trace，或引用 GitHub Issue / 粘贴错误日志。
+
+| Finding | Action |
+|---|---|
+| Bug fix intent detected | **进入 Bug Fix 快速路径**（见下方专节） |
+| Not a bug fix | Check Signal 2b |
+
+### Signal 2b: What did the user provide?
 
 | User Input | Enter At |
 |---|---|
 | No input / empty | Phase 1 (discover) -- "我们做什么？" |
 | Vague idea: "improve the search", "make it faster" | Phase 1 (discover) -- needs requirements |
-| Bug report: "X is broken", "error when Y" | Phase 4 (code) -- via `ce:work` bare prompt with `investigate` |
 | Clear feature with spec: "Add OAuth per this doc" | Phase 3 (plan) -- requirements exist informally |
 | File path to requirements doc | Phase 2 or 3 -- check if UI involved |
 | File path to plan doc | Phase 4 (code) -- plan exists, execute it |
@@ -179,6 +187,69 @@ Once the entry phase is determined, `dev:flow` drives through the pipeline:
       v
   [Loop back to Phase 1 for next work item]
 ```
+
+## Bug Fix 快速路径
+
+> 当 Signal 2a 检测到 bug 修复意图时，跳过标准 Phase 链，进入专用修复流程。
+>
+> 核心原则：**根因先于修复**（铁律 #3）。
+
+```
+用户报告 bug / 引用 Issue / 粘贴错误日志
+    |
+    v
+Signal 0: 工作区检查（同标准流程）
+    |
+    v
+Step 1: 复现
+    reproduce-bug (涉及 UI 时叠加 dev-browser)
+    产出：可稳定触发的复现步骤 + 失败断言
+    ⛔ 无法复现 -> 停下，向用户要更多上下文
+    |
+    v
+Step 2: 根因定位
+    ce-debug（因果链门控 4 阶段）/ investigate
+    产出：定位到具体代码行 + 因果链解释
+    ⛔ 3 轮定位失败 -> 停下质疑架构
+    |
+    v
+Step 3: 修复实现（= Phase 4 子集）
+    TDD: 先将复现步骤固化为回归测试（RED）
+         再写最小修复代码（GREEN）
+    ⛔ 不扩大修复范围——只修根因，不顺手重构
+    |
+    v
+Step 4: 回归验证（= Phase 5 子集）
+    - 回归测试通过
+    - 全量测试套件无新失败
+    - 涉及 UI 时 dev-browser 验证修复效果
+    |
+    v
+GATE: 报告修复结果，用户决定是否进入 Phase 6 交付
+```
+
+### Bug Fix 路由细节
+
+| 信号 | 路由 |
+|---|---|
+| 用户描述 bug + 提供复现步骤 | Step 1 快速确认 -> Step 2 |
+| 用户粘贴 stack trace / 错误日志 | Step 2 直接开始（日志即复现证据） |
+| 引用 GitHub Issue | `reproduce-bug` 从 Issue 提取复现步骤 -> Step 1 |
+| 用户说"紧急"/"hotfix"/"线上" | 同上流程，但 GATE 提示优先交付，跳过非必要审查 |
+
+### 与标准流程的关系
+
+- Bug Fix 路径**不产出需求文档**（Phase 1 产物），bug 本身就是需求："恢复预期行为"。
+- Bug Fix 路径**不产出设计文档**（Phase 2 产物），除非修复涉及 UI 变更且需要新的交互模式。
+- 修复完成后汇入标准 Phase 6（交付），遵守铁律 #7（提交由用户触发）。
+- 如果根因分析发现问题不是 bug 而是缺失功能，**退出 Bug Fix 路径，回到标准 Phase 1**。
+
+### Bug Fix 铁律
+
+- **无复现，不定位** —— 不能稳定复现的 bug 不进入 Step 2
+- **无根因，不修复** —— 禁止"试试看"式修复
+- **不扩大范围** —— 只修根因，不顺手清理周边代码；清理另开任务
+- **回归测试必须先于修复代码** —— 铁律 #2 在 bug 场景的具体化
 
 ## GATE Behavior
 
@@ -289,8 +360,7 @@ Not every work item needs all 7 phases. `dev:flow` auto-detects skippable phases
 | Condition | Skip |
 |---|---|
 | Pure backend, no UI in requirements | Phase 2 (design) |
-| Trivial fix (1-2 files, clear scope) | Phase 1 (Lightweight brainstorm), Phase 2, Phase 3 |
-| Emergency hotfix | Phase 1, 2, 3 -- go straight to Phase 4 with bare prompt |
+| Bug fix (including trivial fix, emergency hotfix) | **走 Bug Fix 快速路径**（Signal 2a），不走标准 Phase 链 |
 | Requirements already exist and approved | Phase 1 |
 | DESIGN.md exists and no new UI patterns needed | Phase 2 |
 | Plan already exists and reviewed | Phase 3 |
@@ -368,19 +438,55 @@ Phase 7 (/dev:learn):
   -> "知识已沉淀。准备进入下一个工作项。"
 ```
 
+## Bug Fix Example
+
+```
+用户: "用户登录时报 500，日志里有 NullPointerException"
+
+dev:flow 检测:
+  - Signal 0: 在 fix/login-npe 分支，工作区就绪
+  - Signal 1: 无进行中的工作
+  - Signal 2a: bug 修复意图（"报 500" + stack trace）
+  - 进入 Bug Fix 快速路径
+
+Step 1 (复现):
+  用户已提供 stack trace -> 跳过手动复现
+  -> 从日志提取调用链，定位到 UserService.login()
+  GATE: "已确认复现路径。进入根因定位。"
+
+Step 2 (根因定位):
+  -> ce-debug 因果链分析
+  -> 根因: UserService.login() 未处理 user.getProfile() 返回 null 的情况
+     （新注册用户尚未创建 profile 记录）
+  GATE: "根因已定位。进入修复实现。"
+
+Step 3 (修复实现):
+  -> TDD RED: 写回归测试 -- 新注册用户登录应返回 200
+  -> TDD GREEN: UserService.login() 添加 null check，无 profile 时创建默认 profile
+  -> 不扩大范围（不顺手重构 UserService 其他方法）
+
+Step 4 (回归验证):
+  -> 回归测试通过 ✅
+  -> 全量测试套件 142/142 通过 ✅
+  GATE: "修复已验证。进入 Phase 6 交付?"
+
+Phase 6 (/dev:ship):
+  -> 用户确认 -> git commit -m "修复新注册用户登录 500: 处理 profile 为 null 的情况"
+```
+
 ## Inputs / Outputs
 
 | | Value |
 |---|---|
 | **Input** | Anything: idea, bug report, file path, "ship it", or nothing |
-| **Output** | Completed work item: requirements -> design -> plan -> code -> verified -> shipped -> documented |
+| **Output** | Completed work item: requirements -> design -> plan -> code -> verified -> shipped -> documented (bug fix 走快速路径: 复现 -> 根因 -> 修复 -> 验证 -> 交付) |
 | **Next** | Self (next work item) |
 
 ## Iron Laws (inherited from all phases)
 
 1. **Design before implement** -- no code without approved requirements
 2. **Test before code** -- no production code without failing test
-3. **Root cause before fix** -- no fix without understanding why
+3. **Root cause before fix** -- no fix without understanding why (Bug Fix 快速路径 Step 2 强制执行)
 4. **Evidence before assertion** -- no "it works" without proof
 5. **Verify before adopt** -- no review feedback accepted without verification
 6. **Worktree before work** -- 每次创建文档或代码前必须在任务专属 worktree/feature branch 中,且**路径统一在 `<repo>/.worktrees/<name>/`**

@@ -1,6 +1,6 @@
 ---
 name: dev-ship
-description: "Use when Phase 5 has passed and code is ready to deliver. Detects project type and upstream quality to auto-select lightweight (CE) or full (gstack) delivery path. Both end with land-and-deploy."
+description: "Use when Phase 5 has passed and code is ready to deliver. Detects project type and upstream quality to auto-select lightweight (CE) or full (gstack) delivery path. Both end with land-and-deploy and automatic current worktree cleanup after merge."
 ---
 
 <SUPERVISE-CHECK>
@@ -8,6 +8,7 @@ description: "Use when Phase 5 has passed and code is ready to deliver. Detects 
 1. 铁律 6（工作区）：运行 `git rev-parse --abbrev-ref HEAD`。若在 main/master 且不在 `.worktrees/` 子路径 → STOP，创建 worktree。
 2. 铁律 7（提交触发）：本 phase 豁免 — `/dev:ship` 是唯一允许 commit/push/PR 的阶段。
 3. 铁律 4（证据先行）：声称"完成/通过"前必须有测试命令的实际输出作为证据。
+4. 合并后收尾：代码确认合入 main 后，自动删除当前任务 worktree；不得让 `.worktrees/` 下的临时工作区长期滞留。
 </SUPERVISE-CHECK>
 
 # Phase 6: Ship -- "上线"
@@ -18,10 +19,11 @@ description: "Use when Phase 5 has passed and code is ready to deliver. Detects 
 2. **工作区前置（强制）。** 执行 `git rev-parse --abbrev-ref HEAD` 检查当前分支。若在 main/master 或未进入任务专属 worktree，STOP 并要求用户先创建/切换到 feature branch；禁止在主分支直接 commit/push。
 3. **提交由用户显式触发。** 前置阶段（Phase 1-5）绝不主动 commit/push/PR。本阶段（Phase 6）是**唯一**可以 commit/push/创建 PR 的阶段，且要求用户已显式调用 `/dev:ship` 或明确说"提交/commit/push/PR/上线"；每个关键写操作（commit / push / PR / merge / deploy）之前再次以 GATE 向用户确认。
 4. **Review 多轮循环。** Path B 中 `gstack/ship` 的 pre-landing review 和 adversarial review 执行多轮循环。
+5. **合并后自动删除当前工作区。** 一旦代码已合入 main（Path A 成功 push main，Path B/C 的 `land-and-deploy` 确认 merge），`dev-ship` 自动删除当前任务 worktree 并清理本地 feature branch。Merge-readiness GATE 必须提前展示将删除的 worktree 路径；合并成功后不再二次确认。
 
 ## Overview
 
-Phase 6 delivers verified code to production. It **detects** project type and upstream quality context to **auto-select** the right delivery path. Two paths share a single endpoint (`land-and-deploy`).
+Phase 6 delivers verified code to production. It **detects** project type and upstream quality context to **auto-select** the right delivery path. Two paths share a single endpoint (`land-and-deploy`) and then automatically remove the current task worktree after merge.
 
 Position in workflow: Phase 5 (verify) -> **Phase 6** -> Phase 7 (knowledge)
 
@@ -64,13 +66,13 @@ Position in workflow: Phase 5 (verify) -> **Phase 6** -> Phase 7 (knowledge)
 验证通过的代码 (from Phase 5)
   |
   +-- [默认] -----------------------------------------> Path A: Squash 合并回 main
-  |   squash merge + 中文 commit message，保持主干干净
+  |   squash merge + 中文 commit message，保持主干干净 -> 自动删除当前 worktree
   |
   +-- [用户显式要求 PR / 团队协作项目] ----------------> Path B: PR 路径
-  |   ce:commit-push-pr -> land-and-deploy
+  |   ce:commit-push-pr -> land-and-deploy -> 自动删除当前 worktree
   |
   +-- [版本化项目 (有 VERSION 文件)] ------------------> Path C: gstack 完整发布
-  |   ship -> document-release -> land-and-deploy
+  |   ship -> document-release -> land-and-deploy -> 自动删除当前 worktree
   |
   +-- [无上游审查证据] --------------------------------> Path C: gstack 完整发布
 ```
@@ -101,30 +103,36 @@ Position in workflow: Phase 5 (verify) -> **Phase 6** -> Phase 7 (knowledge)
    主干保持线性、干净、每个 commit 对应一个完整功能。
 
    ```bash
-   # 0. 强制主干同步（不可跳过）
+   # 0. 记录当前任务工作区（后续删除自己前必须先记下来）
+   feature_branch=$(git branch --show-current)
+   task_worktree=$(git rev-parse --show-toplevel)
+   main_worktree=$(git worktree list --porcelain | sed -n 's/^worktree //p' | head -n 1)
+
+   # 1. 强制主干同步（不可跳过）
    git fetch origin main
    git rebase origin/main
    # 冲突时协助解决，解决后继续
 
-   # 1. 切回 main
+   # 2. 回到 main 所在工作区
+   cd "$main_worktree"
    git checkout main
    git pull origin main
 
-   # 2. Squash merge（不自动 commit）
-   git merge --squash <feature-branch>
+   # 3. Squash merge（不自动 commit）
+   git merge --squash "$feature_branch"
 
-   # 3. 用中文 commit message 提交
+   # 4. 用中文 commit message 提交
    git commit -m "<简洁中文描述：为什么变，不是变了什么>"
 
-   # 4. Push
+   # 5. Push
    git push origin main
 
-   # 5. 清理 worktree / feature branch
-   git branch -d <feature-branch>
-   # 如果是 worktree: git worktree remove <path>
+   # 6. 合并成功后自动删除当前任务 worktree / feature branch
+   git worktree remove "$task_worktree"
+   git branch -D "$feature_branch"
    ```
 
-   **GATE: 展示 squash diff 摘要和拟定的 commit message，用户确认后执行 commit + push。**
+   **GATE: 展示 squash diff 摘要、拟定的 commit message、将删除的 `task_worktree` 路径。用户确认后执行 commit + push；push 成功后自动删除当前任务 worktree。**
 
    Commit message 规范：
    - 第一行：简洁中文，说明意图（为什么变），不超过 50 字
@@ -140,6 +148,8 @@ Position in workflow: Phase 5 (verify) -> **Phase 6** -> Phase 7 (knowledge)
      [+ feature-video in parallel if UI detected]
    /gstack-land-and-deploy
      - CI wait -> merge-readiness report -> merge -> deploy -> canary
+   /dev-ship cleanup
+     - Merge 确认后自动删除当前任务 worktree + 本地 feature branch
    ```
 
    **Path C: gstack 完整发布路径（版本化项目）**
@@ -157,6 +167,8 @@ Position in workflow: Phase 5 (verify) -> **Phase 6** -> Phase 7 (knowledge)
      - Auto-updates factual changes, asks on narrative changes
    /gstack-land-and-deploy
      - CI wait -> merge-readiness report -> merge -> deploy -> canary
+   /dev-ship cleanup
+     - Merge 确认后自动删除当前任务 worktree + 本地 feature branch
    ```
 
 4. **`land-and-deploy` auto-detects** deployment platform and canary depth:
@@ -166,7 +178,7 @@ Position in workflow: Phase 5 (verify) -> **Phase 6** -> Phase 7 (knowledge)
 
    **GATE: Merge-readiness report shown to user. User confirms before merge.**
 
-5. **过程文件归档(可选 GATE,land-and-deploy 之后触发)**:
+5. **过程文件归档(可选 GATE,land-and-deploy 之后、删除工作区之前触发)**:
    扫描本任务相关的过程文件:
    ```bash
    # 用本次 PR/分支关联的日期或 R-ID 关键词匹配
@@ -195,14 +207,36 @@ Position in workflow: Phase 5 (verify) -> **Phase 6** -> Phase 7 (knowledge)
    - 选 2: 委托 `/dev:wiki-ingest <files>`,完成后再 GATE 是否 `git rm` 原文
    - 选 3 / 4: 跳过
 
-6. **Next**: `/dev:learn` (Phase 7)
+6. **自动删除当前工作区(强制收尾)**:
+   代码已合入 main 后，`dev-ship` 自动删除当前任务 worktree，不保留临时工作区。
+
+   ```bash
+   # 在当前任务 worktree 中预先记录
+   feature_branch=$(git branch --show-current)
+   task_worktree=$(git rev-parse --show-toplevel)
+   main_worktree=$(git worktree list --porcelain | sed -n 's/^worktree //p' | head -n 1)
+
+   # merge/push main 或 land-and-deploy 成功后，从 main worktree 执行
+   cd "$main_worktree"
+   git pull origin main
+   git worktree remove "$task_worktree"
+   git branch -D "$feature_branch"
+   ```
+
+   安全约束:
+   - 若 `task_worktree` 等于 `main_worktree`，或路径不在 `<repo>/.worktrees/` 下，STOP 并报告；禁止删除主 checkout。
+   - 删除前运行 `git -C "$task_worktree" status --porcelain`;若过程文件归档产生未提交改动，暂停并报告，不使用 `--force` 删除。
+   - Path A 是 squash merge，本地 feature branch 不会被 Git 认为已合并；只有在 `git push origin main` 成功后才允许 `git branch -D "$feature_branch"`。
+   - Path B/C 只有在 `land-and-deploy` 明确确认 PR 已 merge 到 main 后才执行清理。
+
+7. **Next**: `/dev:learn` (Phase 7)
 
 ## Inputs / Outputs
 
 | | Value |
 |---|---|
 | **Input** | Verified code diff (Phase 5 PASS) |
-| **Output** | Squash 合并到 main（默认）或 PR + 部署（显式要求时）;过程文件按用户选择归档/编译/保留 |
+| **Output** | Squash 合并到 main（默认）或 PR + 部署（显式要求时）;过程文件按用户选择归档/编译/保留;合并后自动删除当前任务 worktree |
 | **Next** | `/dev:learn` (Phase 7) |
 
 ## Iron Law
