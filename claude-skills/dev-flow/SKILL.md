@@ -1,6 +1,7 @@
 ---
 name: dev-flow
 description: "Use when starting any development task, or when unsure which dev: phase to begin with. Detects the current project state, identifies which phase the work is in, and orchestrates the full discover->design->plan->code->verify->ship->learn pipeline automatically. The single entry point for the entire AI Coding workflow."
+argument-hint: "[mode:auto|mode:manual] [task description]"
 ---
 
 <SUPERVISE-CHECK>
@@ -21,7 +22,7 @@ description: "Use when starting any development task, or when unsure which dev: 
 
 ## Overview
 
-`dev:flow` is the single entry point for the entire AI Coding workflow. It **detects** where the current work stands in the 7-phase pipeline, **enters** at the right phase, and **drives** through to completion -- or stops at a GATE for user approval before continuing.
+`dev:flow` is the single entry point for the entire AI Coding workflow. It **detects** where the current work stands in the 7-phase pipeline, **enters** at the right phase, and **drives** through to completion. 默认是人工确认模式，在重要 GATE 停下等待用户；显式 `mode:auto` 时，在无阻塞条件下自动推进。
 
 ```
 dev:flow
@@ -36,6 +37,28 @@ dev:flow
 ```
 
 You do not need to call individual `dev:*` skills manually. `dev:flow` detects and routes.
+
+## Phase 0: Detect Run Mode
+
+Parse the invocation arguments before any phase detection:
+
+| Mode | How to activate | Behavior |
+|---|---|---|
+| `mode:manual` (default) | Omit mode, pass `mode:manual`, or use ordinary requests | Important GATEs stop and wait for user confirmation |
+| `mode:auto` | Pass `mode:auto`, or explicitly ask for "全自动模式" / "自动跑完整个流程" / "不要每步确认" | Phase GATEs auto-continue when success criteria are met and no hard blocker exists |
+
+Mode rules:
+- `mode:auto` is an **explicit user authorization** to auto-advance phase GATEs, including later entering `/dev:ship` inside the same flow。
+- `mode:auto` 只在"当前阶段通过 + 下一步唯一明确"时自动继续；它不跳过 phase-level hard blocker。
+- 没有明确自动模式信号时，一律保持 `mode:manual`。
+
+Hard blockers that still **STOP** in `mode:auto`:
+- 工作区前置不满足，或用户拒绝创建/切换 worktree
+- 必需产物缺失且无法自动生成
+- 测试失败、phase skill 返回 STOP、或本应产生产物却没有产物
+- 强制 review gate 仍有未处理 P0/P1
+- 当前阶段存在多个有效分支且不能安全自动替用户选一个
+- 外部/系统失败：鉴权失败、网络失败、merge conflict、deploy 失败、缺少关键工具
 
 ## Scene Detection: Where Are We?
 
@@ -142,7 +165,7 @@ Once the entry phase is determined, `dev:flow` drives through the pipeline:
   Phase 1: /dev:discover
       |  Scene Detection -> ideate / office-hours / brainstorm
       |  Output: requirements doc with R-IDs
-      |  GATE: user approves requirements
+      |  GATE: requirements approved
       |
       |  Auto-detect: has UI? ----yes----> Phase 2
       |                  |
@@ -177,7 +200,7 @@ Once the entry phase is determined, `dev:flow` drives through the pipeline:
   Phase 6: /dev:ship
       |  Auto-select Path A or B
       |  land-and-deploy with canary
-      |  GATE: user confirms merge
+      |  GATE: merge confirmed
       |
       v
   Phase 7: /dev:learn
@@ -253,7 +276,7 @@ GATE: 报告修复结果，用户决定是否进入 Phase 6 交付
 
 ## GATE Behavior
 
-At each GATE, `dev:flow` **stops and reports status** before continuing:
+At each GATE, `dev:flow` reports status. In `mode:manual`, it stops and waits. In `mode:auto`, it auto-continues unless a hard blocker is present:
 
 ```
 --- GATE: Phase 1 完成 ---
@@ -266,11 +289,16 @@ UI 检测: 是 (R1, R2 中提到 views/components)
 下一步: Phase 2 (设计) -- 继续? [继续 / 跳到 Phase 3 / 暂停]
 ```
 
-User can:
+`mode:manual` user actions:
 - **继续** -- 进入下一阶段
 - **跳过** -- 跳过当前阶段（如后端无需设计）
 - **暂停** -- 暂停流程，稍后用 `/dev:flow` 恢复
 - **回退** -- "回到 Phase 1 修改需求"
+
+`mode:auto` behavior:
+- 若当前阶段通过且下一步唯一明确：自动进入下一阶段，并打印一行状态摘要
+- 若遇到 hard blocker：立即 STOP，报告阻塞点和所需人工决策
+- 若只是提醒级信息（例如主干偏离 6-15 commits）：打印提醒后继续，不额外停下
 
 ## 主干同步机制（Trunk Sync）
 
@@ -278,7 +306,7 @@ User can:
 
 ### 检测方式
 
-每次 GATE 暂停时，自动执行：
+每次 GATE 检查时，自动执行：
 
 ```bash
 # 获取最新 main（仅 fetch，不改工作区）
@@ -294,8 +322,8 @@ echo "主干偏离: $BEHIND commits behind main"
 | 偏离度 | GATE 中的表现 | 动作 |
 |---|---|---|
 | 0-5 commits | ✅ 显示偏离数，不干预 | 无 |
-| 6-15 commits | ⚠️ 黄色提醒 | 建议在当前 GATE 同步："建议在继续前同步主干：`git rebase origin/main`" |
-| 16+ commits | 🔴 红色警告 | 强烈建议同步，列出 main 上的关键变更文件："主干已有 N 个新提交，涉及 X、Y 文件，强烈建议立即 rebase 避免后续合并冲突。" |
+| 6-15 commits | ⚠️ 黄色提醒 | `mode:manual` 下建议在当前 GATE 同步；`mode:auto` 下打印提醒后继续 |
+| 16+ commits | 🔴 红色警告 | STOP，要求先同步主干再继续 |
 
 ### Phase 4 长实现阶段的额外检查
 
@@ -395,42 +423,49 @@ Phase 1 (/dev:discover):
   -> ce:brainstorm 产出需求文档 R1-R4
   -> ce:doc-review: 通过（2 轮循环，第 1 轮修复 1 个一致性问题）
   -> 检测到 UI: 是（通知设置页面）
-  GATE: "需求已就绪。检测到 UI。进入 Phase 2?"
+  GATE (`mode:manual`): "需求已就绪。检测到 UI。进入 Phase 2?"
+  GATE (`mode:auto`): "需求已就绪。检测到 UI。自动进入 Phase 2。"
 
 Phase 2 (/dev:design):
   场景: DESIGN.md 存在，该功能无 approved.json -> Route B
   -> design-shotgun 生成 3 个变体
   -> 用户选择变体 B
-  GATE: "设计方向已确认。进入 Phase 3?"
+  GATE (`mode:manual`): "设计方向已确认。进入 Phase 3?"
+  GATE (`mode:auto`): "设计方向已确认。自动进入 Phase 3。"
 
 Phase 3 (/dev:plan):
   -> ce:plan 产出 4 个实施单元
   -> ce:doc-review: 通过
   -> 检测到 4 单元 -> plan-eng-review + plan-design-review
   -> plan-eng-review: CLEARED
-  GATE: "计划已审查通过。进入 Phase 4?"
+  GATE (`mode:manual`): "计划已审查通过。进入 Phase 4?"
+  GATE (`mode:auto`): "计划已审查通过。自动进入 Phase 4。"
 
 Phase 4 (/dev:code):
   -> ce:work 检测 4 单元，2 个独立 -> 并行+串行策略
   -> Unit 1-2 (并行): 邮件服务 + 通知模型
   -> Unit 3-4 (串行): 控制器 + 设置页面
   -> ce:code-review mode:autofix: 修复 2 个 safe_auto 问题
-  GATE: "所有单元完成。测试通过。进入 Phase 5?"
+  GATE (`mode:manual`): "所有单元完成。测试通过。进入 Phase 5?"
+  GATE (`mode:auto`): "所有单元完成。测试通过。自动进入 Phase 5。"
 
 Phase 5 (/dev:verify):
   -> ce:code-review interactive: 8 个 persona 激活（含邮件处理的 security）
   -> 第 1 轮: 发现 1 个 P1 (邮件注入风险) + 1 个 P2
   -> 修复 -> 第 2 轮: 零 P0/P1 -> 通过
   -> ce:test-browser: 通知设置页面测试通过
-  GATE: "验证通过。进入 Phase 6?"
+  GATE (`mode:manual`): "验证通过。进入 Phase 6?"
+  GATE (`mode:auto`): "验证通过。自动进入 Phase 6。"
 
 Phase 6 (/dev:ship):
   场景: 无版本文件 -> Path A (squash 合并回 main)
   -> 主干同步: rebase origin/main，无冲突
   -> squash merge: 展示 diff 摘要 + 拟定 commit message
-  -> 用户确认 -> git commit -m "新增账号禁用时的邮件通知"
+  -> `mode:manual`: 用户确认后继续
+  -> `mode:auto`: 自动继续
   -> push to main，清理 feature branch
-  GATE: "已合并到 main。进入 Phase 7?"
+  GATE (`mode:manual`): "已合并到 main。进入 Phase 7?"
+  GATE (`mode:auto`): "已合并到 main。自动进入 Phase 7。"
 
 Phase 7 (/dev:learn):
   场景: 功能已发布，邮件服务模式是新的 -> Route A
@@ -452,13 +487,15 @@ dev:flow 检测:
 Step 1 (复现):
   用户已提供 stack trace -> 跳过手动复现
   -> 从日志提取调用链，定位到 UserService.login()
-  GATE: "已确认复现路径。进入根因定位。"
+  GATE (`mode:manual`): "已确认复现路径。进入根因定位。"
+  GATE (`mode:auto`): "已确认复现路径。自动进入根因定位。"
 
 Step 2 (根因定位):
   -> ce-debug 因果链分析
   -> 根因: UserService.login() 未处理 user.getProfile() 返回 null 的情况
      （新注册用户尚未创建 profile 记录）
-  GATE: "根因已定位。进入修复实现。"
+  GATE (`mode:manual`): "根因已定位。进入修复实现。"
+  GATE (`mode:auto`): "根因已定位。自动进入修复实现。"
 
 Step 3 (修复实现):
   -> TDD RED: 写回归测试 -- 新注册用户登录应返回 200
@@ -468,7 +505,8 @@ Step 3 (修复实现):
 Step 4 (回归验证):
   -> 回归测试通过 ✅
   -> 全量测试套件 142/142 通过 ✅
-  GATE: "修复已验证。进入 Phase 6 交付?"
+  GATE (`mode:manual`): "修复已验证。进入 Phase 6 交付?"
+  GATE (`mode:auto`): "修复已验证。自动进入 Phase 6 交付。"
 
 Phase 6 (/dev:ship):
   -> 用户确认 -> git commit -m "修复新注册用户登录 500: 处理 profile 为 null 的情况"
@@ -478,7 +516,7 @@ Phase 6 (/dev:ship):
 
 | | Value |
 |---|---|
-| **Input** | Anything: idea, bug report, file path, "ship it", or nothing |
+| **Input** | Anything: idea, bug report, file path, `mode:auto`, `mode:manual`, "ship it", or nothing |
 | **Output** | Completed work item: requirements -> design -> plan -> code -> verified -> shipped -> documented (bug fix 走快速路径: 复现 -> 根因 -> 修复 -> 验证 -> 交付) |
 | **Next** | Self (next work item) |
 
