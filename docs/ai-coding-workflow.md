@@ -112,7 +112,7 @@ Wiki Query (项目 wiki/index.md + ~/.claude/wiki/index.md)
 "做这个具体的事"   -> Route D: ce:brainstorm (Lightweight)
                                         |
                                   ce:doc-review
-                                  (opt-in，用户选择时运行)
+                                  (Route C/高风险强制；小范围低风险 opt-in)
 ```
 
 `dev:discover` 自动检测用户输入的意图清晰度（无方向 / 有方向但不确定价值 / 多面向 / 清晰小范围），路由到正确的入口技能。**所有路径最终汇聚到 `ce:brainstorm`。**
@@ -122,14 +122,33 @@ Wiki Query (项目 wiki/index.md + ~/.claude/wiki/index.md)
 | `ce:ideate` | 创意发散 | 无方向时，生成 20-30 候选，筛选到 Top 5-7 |
 | `office-hours` | 需求验证 | 有想法但不确定值不值得做 |
 | **`ce:brainstorm`** | **需求定义（唯一出口）** | **所有场景最终汇聚于此** |
-| `ce:doc-review` | 多人格审查 | opt-in，brainstorm Phase 4 handoff 提供选项 |
+| `ce:doc-review` | 多人格审查 | Route C/Deep 或高风险需求强制；Route D 小范围低风险 opt-in |
 
 ### 为什么是 `ce:brainstorm` 的需求文档
 
 - **R-ID 追溯**（R1, R2, R3...）-- 贯穿规划、实现、审查全流程的锚点
 - **阻塞问题分级** -- Resolve Before Planning / Deferred to Planning
 - **无实现泄漏** -- 只定义 WHAT，不泄漏 HOW
-- **ce:doc-review（opt-in）** -- coherence / feasibility / product-lens / design-lens / security-lens / scope-guardian 并行审查
+- **ce:doc-review（条件强制）** -- coherence / feasibility / product-lens / design-lens / security-lens / scope-guardian / adversarial 并行审查；Route C/Deep、高风险、或用户要求 review 时必须通过多轮门禁
+
+### Phase 1 Review Gate
+
+`dev:discover` 在 `ce:brainstorm` 写出需求文档后，先判断 review gate:
+
+| 信号 | 动作 |
+|---|---|
+| Route C / Deep brainstorm | 强制 `ce-doc-review <requirements-path>` |
+| R-ID 数量 >8 | 强制 `ce-doc-review` |
+| 外部上游/API/SDK、public endpoint、model alias、协议契约 | 强制 `ce-doc-review` |
+| auth/token/凭证、私域素材、用户数据、计费/pricing/quota、审计日志 | 强制 `ce-doc-review` |
+| 用户明确说 review / 审查 | 强制 `ce-doc-review` |
+| Route D 且无以上信号 | opt-in，brainstorm handoff 菜单提供 review |
+
+多轮语义:
+- 使用 Compound Engineering 的 `ce-doc-review` / `compound-engineering:ce-doc-review`，不要用 standalone `document-review` 替代。
+- 循环: 审查 -> 修复/用户裁决 -> 再审查，直到零未处理 P0/P1、达到 3 轮上限、或连续两轮发现相同 P0/P1。
+- 达到上限或收敛仍有 P0/P1 时，STOP；只有用户显式接受风险并把理由写入需求文档 Deferred/Open Questions，才允许进入 `/dev:plan`。
+- Codex 没有阻塞提问工具时，用编号选项停下等待用户；不得把单轮主线程综合报告当作通过。
 
 ### 自动检测下一阶段
 
@@ -215,8 +234,9 @@ ce:plan (唯一创建器)
     |  Test Scenarios (枚举验证点，不预写代码)
     |
     v
-ce:doc-review (Layer 1, 多轮循环)
+ce-doc-review (Layer 1, 多轮门禁)
     |  coherence / feasibility / scope-guardian
+    |  零未处理 P0/P1 或记录化 override
     |
     v
 dev:plan 检测 Implementation Unit 数量，自动选审深度 (Layer 2)
@@ -229,6 +249,21 @@ dev:plan 检测 Implementation Unit 数量，自动选审深度 (Layer 2)
     v
 修订后的计划 + GSTACK REVIEW REPORT
 ```
+
+### Phase 3 Review Gates
+
+`dev:plan` 在进入 `/dev:code` 前有两层强制审查门禁:
+
+| 层级 | 门禁 |
+|---|---|
+| Layer 1 | `ce-doc-review <plan-path>` 必须通过；不要用 standalone `document-review` 替代 |
+| Layer 2 | 选中的 `plan-eng-review` / `autoplan` / `plan-design-review` / `plan-devex-review` 必须写入 REVIEW REPORT 并 cleared |
+
+多轮语义:
+- 循环: 审查 -> 修复/用户裁决 -> 再审查，直到零未处理 P0/P1、达到 3 轮上限、或连续两轮发现相同 P0/P1。
+- 达到上限或收敛仍有 P0/P1 时，STOP；只有用户显式接受风险并把理由写入计划 Deferred/Open Questions 或 Review Notes，才允许进入 `/dev:code`。
+- Codex 没有阻塞提问工具时，用编号选项停下等待用户；不得把单轮主线程综合报告当作通过。
+- gstack 审查技能在 Codex 环境不可用时，STOP 并要求用户选择手动执行、使用可用 fallback、或记录 override。
 
 ### 为什么是 `ce:plan` 而非 `writing-plans`
 
@@ -259,23 +294,40 @@ dev:plan 检测 Implementation Unit 数量，自动选审深度 (Layer 2)
 计划文档
     |
     v
-ce:work (自动检测策略)
+dev-code 外层编排
     |
-    +-- 1-2 files, 无行为变更    -> 直接内联实现
-    +-- < 10 files, 清晰范围     -> 串行任务列表
-    +-- 3+ 单元有顺序依赖        -> 串行 Agent
-    +-- 3+ 单元互相独立          -> 并行 Agent
-    +-- 10+ 单元需要协调         -> Swarm (Agent Teams)
-    +-- 可度量优化目标            -> ce-optimize (迭代实验循环)
+    +-- 按 2-3 个 Implementation Units 切批
+    +-- 每批调用 ce:work 只执行当前 batch
+    +-- 禁止 ce:work 进入 shipping workflow / residual gate
     |
     v
-每个任务内部：
-    实现 -> Test Discovery -> System-Wide Test Check -> 暂存变更（git add，不 commit）
-    每 2-3 单元: Simplify 通道（跨单元去重，仍不 commit）
+每个 batch:
+    ce:work 实现 -> Test Discovery -> System-Wide Test Check -> 暂存变更（git add，不 commit）
+    -> ce:code-review mode:autofix (safe_auto only)
     |
     v
-内嵌 ce:code-review mode:autofix (快速 safe_auto 修复, 最多 2 轮)
+所有 Unit 完成:
+    /simplify
+    -> final ce:code-review mode:autofix
+    -> gated_auto/manual 留给 Phase 5
 ```
+
+### Phase 4 自动修复回路
+
+`dev:code` 的 review 目标是**实现阶段自动修复**，不是最终质量裁决。
+
+| 时机 | 动作 |
+|---|---|
+| 每个 2-3 Unit batch 完成后 | 运行 `ce:code-review mode:autofix plan:<path>` |
+| 单批次/小改动完成后 | 至少运行一次 `mode:autofix` |
+| 所有 Unit 完成后 | 先运行 `/simplify` |
+| `/simplify` 之后 | 再运行一次 final `mode:autofix` |
+
+规则:
+- `dev-code` 是外层编排器；`ce:work` 只执行当前 batch，不进入自己的 shipping workflow / residual-review gate。
+- 只自动应用 `safe_auto -> review-fixer`。
+- 不处理 `gated_auto` / `manual` / `human` / `release` 决策；残余作为 downstream work/todo 交给 Phase 5。
+- 不得因为后面还有 `dev:verify` 就跳过 Phase 4 autofix loop；Phase 5 是独立总体审查，不是自动修复替代品。
 
 ### 自动触发的辅助技能
 
@@ -292,9 +344,9 @@ ce:work (自动检测策略)
 | Plan 引用 GitHub Issue | `reproduce-bug`（涉及 UI 复现时叠加 `dev-browser`） |
 | 目标为可度量指标优化（prompt/性能/搜索质量） | `ce-optimize`（实验循环 + 度量收敛） |
 
-### Phase 4 → Phase 5 过渡关：`/simplify`
+### Phase 4 → Phase 5 过渡关：`/simplify` + final autofix
 
-所有 Unit 完成、准备进入 Phase 5 前，默认手动调用一次 `/simplify`——它并行派三个 agent（复用 / 质量 / 效率）扫整个累积 diff 并直接修复：
+所有 Unit 完成、准备进入 Phase 5 前，默认手动调用一次 `/simplify`，然后再运行 final `ce:code-review mode:autofix`。`/simplify` 并行派三个 agent（复用 / 质量 / 效率）扫整个累积 diff 并直接修复：
 
 | Agent | 抓什么 |
 |---|---|
@@ -307,7 +359,7 @@ ce:work (自动检测策略)
 - ✅ 所有 Unit 完成、Phase 4 收尾时（**默认**）
 - ✅ 中途某个 Unit 改动量大 / 重构密集 / 引入新抽象时可选插一次
 - ❌ 每个 Unit 都跑（太频繁，`ce:work` 已自动每 2-3 Unit 做内置 simplify pass）
-- ❌ `ce:code-review` 完成后再跑（维度重叠）
+- ❌ Phase 5 的 `ce:code-review interactive` 完成后再回头跑（那是总体审查之后，不应回到实现期清理）
 
 **与 `ce:work` 内置 simplify pass 的区别**：
 
@@ -317,6 +369,8 @@ ce:work (自动检测策略)
 | 扫描范围 | 跨单元去重 | 完整累积 diff 三维（复用/质量/效率） |
 | 执行方式 | 单 agent 串行 | 三 agent 并行 |
 | 修复策略 | 保守去重 | 直接修 + 跳过 false positive |
+
+`/simplify` 会修改代码，所以其后必须再跑一次 final `ce:code-review mode:autofix`，确保 simplification edits 也经过 Phase 4 自动修复。
 
 ### 铁律
 
@@ -329,11 +383,11 @@ ce:work (自动检测策略)
 
 ## Phase 5: 验证 -- "质量关"
 
-> 目标：多层级审查确保代码质量
+> 目标：总体审查当前产物，处理需要裁决的问题，并确保代码质量
 >
 > 路由器：`dev:verify`
 >
-> 核心产出：审查裁决（PASS / NEEDS_WORK）+ safe_auto 修复 + 残余 todo
+> 核心产出：总体审查裁决（PASS / NEEDS_WORK）+ gated/manual 裁决 + 残余 todo
 
 ### 智能路由：`ce:code-review` 自动组队 + `dev:verify` 自动叠加
 
@@ -387,8 +441,10 @@ todo-resolve (批量处理残余)
 | | Phase 4 (内嵌) | Phase 5 (完整) |
 |---|---|---|
 | 模式 | `mode:autofix` | `interactive` |
-| 目的 | 快速 safe_auto 修复 | 完整审查含 gated_auto 和 manual |
-| 轮次 | 最多 2 轮 | 最多 3 轮 |
+| 目的 | 实现阶段自动修复 `safe_auto` | 总体审查当前产物，处理 `gated_auto` / `manual` 裁决 |
+| 触发 | 每个 batch 后 + `/simplify` 后 final pass | Phase 4 完成后，或用户手动要求审查当前产物 |
+| 轮次 | 每次 `mode:autofix` 内部 bounded re-review；可随实现批次多次运行 | 最多 3 轮 interactive 审查/修复/再审 |
+| 决策 | 不问用户，不处理 gated/manual | 需要时向用户展示裁决项 |
 | 叠加层 | 无 | 按 diff 自动叠加 + 跨模型对抗 + slop-scan |
 
 ### 铁律
@@ -952,6 +1008,10 @@ ce:plan -> GATE -> ce:work -> GATE -> ce:code-review(autofix) -> todo-resolve ->
                                     (b) 达到最大轮次（Phase 4: 2 轮, 其余: 3 轮）
                                     (c) 连续两轮发现相同问题（收敛）
 ```
+
+Phase 1 特例：Route C/Deep 或高风险需求的 `ce-doc-review` 是进入 Phase 3 前的强制门禁；若仍有未处理 P0/P1，只能阻塞或记录用户 override，不能直接宣布 requirements 批准。
+
+Phase 3 特例：`ce-doc-review` 和选中的计划审查层是进入 Phase 4 前的强制门禁；若仍有未处理 P0/P1，只能阻塞或记录用户 override，不能直接宣布计划已审查通过。
 
 ---
 

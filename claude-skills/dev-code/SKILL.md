@@ -17,7 +17,7 @@ description: "Use when a reviewed plan exists and it is time to write code. Rout
 1. **始终用中文与用户交流。** 所有状态报告、GATE 提示均使用中文。
 2. **工作区前置（强制）。** 开始写代码前执行 `git rev-parse --abbrev-ref HEAD` 检查当前分支。若在 main/master 或未进入任务专属 worktree，STOP 并调用 `compound-engineering:ce-worktree`（或 `superpowers:using-git-worktrees`）创建工作区后再继续。
 3. **提交由用户触发。** Phase 4 只做文件修改、运行测试、必要时 `git add` 暂存，**不执行** `git commit` / `git push` / 创建 PR。提交仅在 `/dev:ship`（Phase 6）由用户显式触发。
-4. **Review 多轮循环。** 内嵌的 `ce:code-review mode:autofix` 执行多轮循环（最多 2 轮 bounded re-review）。
+4. **Review 自动修复回路。** `dev-code` 是外层编排器：按 2-3 个 Implementation Units 切批调用 `ce:work`，每批后运行 `ce:code-review mode:autofix`；所有 Unit 完成后先 `/simplify`，再运行最终 autofix。Phase 4 只自动应用 `safe_auto`，不做 `gated_auto/manual` 用户裁决；残余发现进入 Phase 5 的总体审查。
 
 ## Overview
 
@@ -71,23 +71,30 @@ Position in workflow: Phase 3 (planning) -> **Phase 4** -> Phase 5 (verification
    - "裸提示，影响 2 个文件 -- 内联执行。"
    - "计划 Unit 3 标记为 test-first -- 该单元使用 TDD。"
 
-2. **`ce:work` executes** with auto-selected strategy
-   - Per task: Implement -> Test Discovery -> System-Wide Test Check -> 暂存变更（可 `git add`，**不 commit**）
-   - Every 2-3 units: Simplify pass (cross-unit dedup, still no commit)
+2. **`dev-code` slices execution into batches, then invokes `ce:work` for each batch**
+   - Batch size: 2-3 Implementation Units by default; one batch is fine for small plans.
+   - Pass the plan path plus the current batch's Unit IDs/goals to `ce:work`; instruct it to execute only that batch.
+   - Use `ce:work` as an implementation executor only: Implement -> Test Discovery -> System-Wide Test Check -> stage allowed, **no commit**.
+   - Do not let `ce:work` enter its own shipping workflow / residual-review gate. Phase 4 residuals are recorded and handed to Phase 5.
 
-3. **REVIEW: `ce:code-review mode:autofix` 多轮循环** (内嵌在 `ce:work` Phase 3)
-   - Tier 2 (default): 20+ persona 并行审查, safe_auto 修复, R-ID 追溯
+3. **REVIEW AUTOFIX LOOP: `ce:code-review mode:autofix`** (Phase 4 自动修复回路)
+   - 默认 Tier 2: 20+ persona 并行审查, `safe_auto` 修复, R-ID 追溯
    - Tier 1 (仅当全部满足: 纯新增 + 单一关注点 + 模式跟随 + 忠于计划)
    - 传入 `plan:<path>` 用于需求追溯验证
-   - **循环**: 修复 -> 再审查，最多 2 轮 bounded re-review（Phase 4 是快速 autofix 通道，比 Phase 5 的 3 轮上限更紧凑）
+   - **批次触发**: 每个 `ce:work` batch 完成后立即运行一次；若是单批次/小改动，至少在实现完成后运行一次
+   - **最终触发**: 所有 Unit 完成并运行 `/simplify` 后，再运行一次最终 autofix，覆盖 simplification edits
+   - **单次运行内部循环**: `mode:autofix` 自动执行 bounded re-review，应用 `safe_auto -> review-fixer` 后重审，直到无新的 `safe_auto` 或达到上游轮次上限
+   - **边界**: Phase 4 不处理 `gated_auto` / `manual` / `human` / `release` 决策；这些残余必须记录为 downstream work/todo，交给 Phase 5 interactive 总体审查处理
+   - **禁止降级**: 不得因为还会运行 `/dev:verify` 就跳过 Phase 4 的 autofix loop；Phase 5 是独立质量门，不是 Phase 4 自动修复的替代品
 
-4. **Phase 4 → Phase 5 过渡关：`/simplify`（默认手动调用一次）**
+4. **Phase 4 → Phase 5 过渡关：`/simplify` + final autofix**
    - 所有 Unit 完成后、进入 `/dev:verify` 之前，调用 `/simplify`
    - 三 agent 并行扫整个累积 diff：复用（找已有 util 替换）/ 质量（冗余 state、参数堆砌、复制粘贴、stringly-typed、无用注释）/ 效率（重复计算、可并行化串行、热路径臃肿、no-op 更新、TOCTOU、内存泄漏）
    - 直接修复发现的问题，false positive 跳过不争论
+   - `/simplify` 之后必须再运行一次 `ce:code-review mode:autofix plan:<path>`；这才是 Phase 4 的最终 autofix pass
    - **跳过条件**: diff < 10 行 trivial 改动 / 仅文档变更 / 中途某 Unit 已单独跑过且后续无重大新增
 
-   **GATE: 所有任务完成。测试通过。审查已应用。`/simplify` 已扫过。残余 todo 已记录。**
+   **GATE: 所有任务完成。测试通过。`/simplify` 已扫过。final autofix 已覆盖 `/simplify` 后 diff，`safe_auto` 已应用。残余 `gated_auto/manual` todo 已记录并交给 Phase 5。**
 
 5. **Next**: `/dev:verify` (Phase 5)
 
@@ -96,7 +103,7 @@ Position in workflow: Phase 3 (planning) -> **Phase 4** -> Phase 5 (verification
 | | Value |
 |---|---|
 | **Input** | Plan file path from Phase 3 (or bare prompt for small work) |
-| **Output** | 已修改的代码 + 通过的测试 + ce:code-review autofix 已应用 + `/simplify` 已扫过（**未 commit**，工作树留有变更） |
+| **Output** | 已修改的代码 + 通过的测试 + Phase 4 多次 `ce:code-review mode:autofix` 的 `safe_auto` 已应用 + `/simplify` 已扫过（**未 commit**，工作树留有变更） |
 | **Next** | `/dev:verify` (Phase 5) |
 
 ## Iron Laws
