@@ -30,7 +30,7 @@ Position in workflow: Phase 2 (design) -> **Phase 3** -> Phase 4 (implementation
 - Requirements doc exists (`docs/brainstorms/*-requirements.md`)
 - Work is non-trivial (more than a one-file fix)
 
-**Skip when:** Plan already exists and has review-pass evidence for this work item (`document-review` passed and `plan-eng-review`/selected Layer 2 review cleared).
+**Skip when:** Plan already exists and has review-pass evidence for this work item (`document-review` passed and `plan-eng-review`/selected Layer 2 review cleared). A freshly written plan file without completed review gates does **not** qualify.
 
 ## Scene Detection
 
@@ -39,6 +39,12 @@ Position in workflow: Phase 2 (design) -> **Phase 3** -> Phase 4 (implementation
 - If found with `status: active` and review-pass evidence present -> SKIP, go to `/dev:code`
 - If found with `status: active` but missing `document-review` pass or Layer 2 REVIEW REPORT -> resume at review step
 - If found with `status: completed` -> SKIP or create new plan (ask user)
+
+`document-review` pass evidence means one of:
+- the current `/dev:plan` invocation just ran `document-review` on this exact plan path and cleared Layer 1, or
+- the plan file already records the last Layer 1 result / override in `Deferred/Open Questions` or `Review Notes`, and there have been no material edits since that review.
+
+Plan file existence by itself is **not** review-pass evidence.
 
 **Signal 2: Does `DESIGN.md` exist? (from Phase 2)**
 - Yes -> `ce-plan` will reference design tokens; `plan-design-review` should run
@@ -87,23 +93,31 @@ Plan created by ce-plan
    - **Wiki Query**: 调用 `/dev:wiki-search` 扫项目 `wiki/index.md` + 全局 `~/.claude/wiki/index.md`,获取既有模式、决策、相关知识,按 caller 推荐顺序读页面,注入 plan context。
    - Output: `docs/plans/YYYY-MM-DD-NNN-<type>-<name>-plan.md`（frontmatter 必须含 `status: active`）
    - Scope auto-classified: Lightweight / Standard / Deep
+   - `ce-plan` 写出 plan 文件后**不算完成**。即使它展示了 handoff 菜单或说"下一步可做 review / code"，`dev-plan` 也必须继续执行自己的 Layer 1 / Layer 2 gates。
 
-3. **REVIEW GATE (Layer 1): `document-review` 多轮门禁** (内嵌在 `ce-plan` Phase 5)
+3. **Post-`ce-plan` enforcement: resolve plan path and enter Layer 1 immediately**
+   - 读取 `ce-plan` 产出的绝对 plan 路径。若没产出 plan 文件，STOP 并重新运行 `ce-plan`；不得进入 review depth 检测。
+   - Ignore `ce-plan`'s post-generation menu as a completion signal. In `/dev:plan`, plan creation is only the handoff into review gates.
+   - 若是新创建或刚被 `ce-plan` 改写的计划：立刻进入 Layer 1，不要向用户输出"如果你要，我继续做 review"之类的可选措辞。
+
+4. **REVIEW GATE (Layer 1): `document-review` 多轮门禁**
    - 多人格审查: coherence / feasibility / scope-guardian（`document-review` 按文档内容自动叠加其他 persona）。
    - 在 Codex 下，若 reviewer-agent / task spawning 可用，必须按 reviewer role 分发为多 agent 审查（可 bounded parallel），不要在能力可用时退化成单线程综合。
    - 只有在当前 harness 明确拿不到 reviewer agents 时，才允许降级为串行 persona passes；降级时仍要保留按 role 分开的 findings，并在状态报告里显式标注。
+   - 默认直接调用 `document-review <plan-path>`。只有在调用链是 pipeline / disable-model-invocation / `mode:auto` 风格的非交互上下文时，才改用 `document-review mode:headless <plan-path>`。
    - `safe_auto` 修复自动应用，`gated_auto` / `manual` 发现交用户判断；Codex 没有阻塞提问工具时，用编号选项停下等待用户，不得静默选项。
    - **循环**: 审查 -> 修复/用户裁决 -> 再审查，直到零未处理 P0/P1，或达到 3 轮上限，或连续两轮发现相同 P0/P1。
    - 若达到上限或收敛仍有 P0/P1：STOP，报告阻塞；只有用户显式接受风险并把理由写入计划的 Deferred/Open Questions 或 Review Notes 后，才允许继续 Layer 2。
+   - If `document-review` 只输出了"review 可作为下一步"、没有真正执行到本计划文件上，视为 Layer 1 未开始，立即重新调用，不得继续。
 
    **GATE: 计划文件存在且有 `document-review` 通过证据（零未处理 P0/P1 或用户记录化 override）。**
 
-4. **Detect review depth** from plan's Implementation Unit count (Signal 3). Announce (中文):
+5. **Detect review depth** from plan's Implementation Unit count (Signal 3). Announce (中文):
    - "计划有 12 个单元 -- 运行完整 autoplan 审查流水线。"
    - "计划有 5 个单元含 UI -- 运行工程 + 设计审查。"
    - "计划有 2 个单元 -- 仅运行工程审查。"
 
-5. **REVIEW (Layer 2): 多视角计划审查 多轮循环** (auto-selected)
+6. **REVIEW (Layer 2): 多视角计划审查 多轮循环** (auto-selected)
    - Large: `gstack-autoplan` (CEO -> Design -> Eng -> DX, serial)
    - Standard: `gstack-plan-eng-review` (required gate) + `gstack-plan-design-review` (if UI)
    - Small: `gstack-plan-eng-review` only
@@ -113,7 +127,7 @@ Plan created by ce-plan
 
    **GATE: GSTACK REVIEW REPORT 写入计划文件。`plan-eng-review` CLEARED（零未处理 P0/P1 或用户记录化 override）。**
 
-6. **Next**: `/dev:code` (Phase 4)
+7. **Next**: `/dev:code` (Phase 4)
 
 ## Inputs / Outputs
 

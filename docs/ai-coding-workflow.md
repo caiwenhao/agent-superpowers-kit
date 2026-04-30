@@ -339,6 +339,7 @@ dev:plan 检测 Implementation Unit 数量，自动选审深度 (Layer 2)
 
 多轮语义:
 - Codex 下若 reviewer-agent / task spawning 可用，优先做多 agent reviewer fanout；只有拿不到 reviewer agents 时，才允许降级为串行角色审查，并要明确报告降级。
+- `ce:plan` 写出 plan 文件后不算完成；`dev:plan` 外层必须立刻进入 Layer 1 review gate，不能停在 `ce:plan` 的 handoff 菜单或“下一步建议”。
 - 循环: 审查 -> 修复/用户裁决 -> 再审查，直到零未处理 P0/P1、达到 3 轮上限、或连续两轮发现相同 P0/P1。
 - 达到上限或收敛仍有 P0/P1 时，STOP；只有用户显式接受风险并把理由写入计划 Deferred/Open Questions 或 Review Notes，才允许进入 `/dev:code`。
 - Codex 没有阻塞提问工具时，用编号选项停下等待用户；不得把单轮主线程综合报告当作通过。
