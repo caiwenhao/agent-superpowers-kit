@@ -37,7 +37,13 @@ description: "Use to review skill execution quality across sessions. Scans sessi
 
 2. **执行扫描**
    ```bash
-   python3 $(git rev-parse --show-toplevel)/scripts/supervise/scan_history.py --since <duration> --scope <scope>
+   REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
+   SCRIPT="$REPO_ROOT/scripts/supervise/scan_history.py"
+   if [ ! -f "$SCRIPT" ]; then
+     echo "⚠️  scripts/supervise/scan_history.py 未找到（跑 /dev:doctor 确认仓库完整性）"
+     exit 0
+   fi
+   python3 "$SCRIPT" --since <duration> --scope <scope>
    ```
 
 3. **保存报告**（将 stdout 重定向到目标文件）

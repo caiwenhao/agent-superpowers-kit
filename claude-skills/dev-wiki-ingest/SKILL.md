@@ -15,7 +15,7 @@ description: "Use when dev-learn writes a new docs/solutions/*.md, after a retro
 
 ## When to Use
 
-- `dev-learn` 的 `ce:compound` 写完 `docs/solutions/*.md` 后自动触发
+- `dev-learn` 的 `ce-compound` 写完 `docs/solutions/*.md` 后自动触发
 - retro 报告写入后
 - 用户手动:"把这篇文章/paper/postmortem ingest 到 wiki"
 - 读完某个外部源(article/doc/URL)准备归档时
@@ -108,6 +108,19 @@ log.md          append-only 操作日志:时间戳 + 操作类型 + 源 + 触动
 2. **前置检查**:
    - 工作区检查(见通用规则 3)
    - Wiki 存在性:`<project>/wiki/` 或 `~/.claude/wiki/` 至少一侧存在;都不存在时提示"先跑 `/dev:wiki-init`"并结束
+   - **孤儿 `_migration.md` 扫描**: 检查 `<project>/wiki/_migration.md` 和 `~/.claude/wiki/_migration.md` 是否存在。若存在:
+     ```bash
+     for wiki in wiki ~/.claude/wiki; do
+       mig="$wiki/_migration.md"
+       [ -f "$mig" ] || continue
+       age_sec=$(( $(date +%s) - $(stat -c %Y "$mig" 2>/dev/null || stat -f %m "$mig") ))
+       age_hr=$(( age_sec / 3600 ))
+       echo "发现 $mig (更新于 ${age_hr}h 前)"
+     done
+     ```
+     - 若 mtime 距今 < 1 小时 **且** 当前调用与原批量输入匹配 → 视为续跑,读 `_migration.md` 恢复进度
+     - 若 mtime ≥ 1 小时 → 视为孤儿,GATE 询问 `清理后重新开始 / 强制续跑 / 取消`；孤儿不得默认处理
+     - 若本次是单源模式,只是扫描到孤儿 → 宣告存在但不清理,提示用户显式启动批量模式才处理
    - 调用 `dev:wiki-search` 查"本次源的关键词"是否已有相关页面,拿到命中清单
 
 3. **抽取(LLM)**:
