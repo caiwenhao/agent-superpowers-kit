@@ -69,6 +69,7 @@ Each runtime path's `SKILL.md` is a symlink to `claude-skills/<name>/SKILL.md`, 
 
 - **SKILL.md format** (frontmatter + Markdown): identical across Claude Code and Codex.
 - **Downstream skill references**: use the canonical flat name from the table above. Both harnesses resolve it.
+- **Reviewer fanout parity**: when `document-review` or `ce-review` is used, both Claude Code and Codex should dispatch reviewer roles as multi-agent review when subagent/task spawning is available. Single-thread synthesis is a fallback only when the harness truly cannot spawn reviewer agents.
 - **`gstack-*` availability**: assumed to be installed in both harnesses. `dev-doctor` probes and reports missing ones, but does not auto-install.
 - **No Claude-Code-only tool calls** (`Agent`, `TodoWrite`, `Skill(...)`) appear in the skill bodies — all invocations are described in neutral prose.
 

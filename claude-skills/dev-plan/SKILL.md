@@ -90,6 +90,8 @@ Plan created by ce-plan
 
 3. **REVIEW GATE (Layer 1): `document-review` 多轮门禁** (内嵌在 `ce-plan` Phase 5)
    - 多人格审查: coherence / feasibility / scope-guardian（`document-review` 按文档内容自动叠加其他 persona）。
+   - 在 Codex 下，若 reviewer-agent / task spawning 可用，必须按 reviewer role 分发为多 agent 审查（可 bounded parallel），不要在能力可用时退化成单线程综合。
+   - 只有在当前 harness 明确拿不到 reviewer agents 时，才允许降级为串行 persona passes；降级时仍要保留按 role 分开的 findings，并在状态报告里显式标注。
    - `safe_auto` 修复自动应用，`gated_auto` / `manual` 发现交用户判断；Codex 没有阻塞提问工具时，用编号选项停下等待用户，不得静默选项。
    - **循环**: 审查 -> 修复/用户裁决 -> 再审查，直到零未处理 P0/P1，或达到 3 轮上限，或连续两轮发现相同 P0/P1。
    - 若达到上限或收敛仍有 P0/P1：STOP，报告阻塞；只有用户显式接受风险并把理由写入计划的 Deferred/Open Questions 或 Review Notes 后，才允许继续 Layer 2。
@@ -107,7 +109,7 @@ Plan created by ce-plan
    - Small: `gstack-plan-eng-review` only
    - Developer-facing: + `gstack-plan-devex-review`
    - **循环**: 每个审查技能内部执行多轮修复，直到零未处理 P0/P1、达到上限、或连续两轮发现相同问题。
-   - 若 `gstack-*` 在当前环境未安装（`dev-doctor` 会报告），STOP 并要求用户选择手动执行对应审查、使用 `document-review` fallback（覆盖 coherence/feasibility/scope 维度，但不能替代 eng-review 的架构判断），或显式把 override 记录进计划的 Review Notes；不得直接进入 `/dev:code`。
+   - 若 `gstack-*` 在当前环境未安装（`dev-doctor` 会报告），Codex 路径优先保留多 agent 角色审查：至少运行一轮 `document-review` reviewer fanout 覆盖 coherence/feasibility/scope/design/security/product/adversarial，并明确还缺少 eng-review 判断；之后由用户选择手动补 eng-review 或记录 override。不得直接进入 `/dev:code`。
 
    **GATE: GSTACK REVIEW REPORT 写入计划文件。`plan-eng-review` CLEARED（零未处理 P0/P1 或用户记录化 override）。**
 

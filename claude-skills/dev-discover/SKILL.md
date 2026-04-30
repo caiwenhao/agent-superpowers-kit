@@ -111,6 +111,8 @@ All routes converge to `ce-brainstorm` as the single exit.
    - Mandatory signals 命中时：立即运行 `document-review <requirements-path>`，不得只在 handoff 菜单里提供 opt-in。
    - 无 mandatory signals 时：保留 opt-in，由 `ce-brainstorm` Phase 4 handoff 提供选项。
    - 多人格审查覆盖 coherence / feasibility / product-lens / design-lens / security-lens / scope-guardian / adversarial。
+   - 在 Codex 下，若 reviewer-agent / task spawning 可用，必须按角色分发为多 agent 审查（可 bounded parallel）。不要在能力可用时退化成单线程综合结论。
+   - 只有在当前 harness 明确拿不到 reviewer agents 时，才允许降级为串行 persona passes；即便降级，也要保留按 reviewer role 分开的发现，并在状态报告里明确写出"已降级为串行角色审查"。
    - `safe_auto` 修复自动应用，`gated_auto` / `manual` 发现交用户判断；Codex 没有阻塞提问工具时，用编号选项停下等待用户，不得静默选项。
    - **循环**: 审查 -> 修复/用户裁决 -> 再审查，直到零未处理 P0/P1，或达到 3 轮上限，或连续两轮发现相同 P0/P1。
    - 若达到上限或收敛仍有 P0/P1：STOP，报告阻塞；只有用户显式接受风险并把理由写入需求文档的 Deferred/Open Questions 后，才允许进入 `/dev:plan`。

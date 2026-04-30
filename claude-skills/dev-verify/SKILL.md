@@ -38,6 +38,8 @@ Position in workflow: Phase 4 (code) -> **Phase 5** -> Phase 6 (delivery)
 
 `ce-review` reads the diff and auto-selects reviewers:
 
+In Codex, reviewer-role fanout should use multiple reviewer agents when subagent/task spawning is available. Do not collapse to a single synthesized pass when the harness can spawn reviewer agents. If the harness truly cannot spawn reviewer agents, fall back to serial persona passes and explicitly report the degraded mode.
+
 **Always-on (every review, no detection needed):**
 - correctness, testing, maintainability, project-standards, agent-native, learnings
 - **Cross-model adversarial**: Claude + Codex always dispatched in parallel; large diffs (200+ lines) add Codex structured P1 gate
@@ -88,6 +90,7 @@ Position in workflow: Phase 4 (code) -> **Phase 5** -> Phase 6 (delivery)
 
 2. **REVIEW (Core): `ce-review plan:<plan-path>`** (interactive mode, 完整独立审查, 多轮循环)
    - **Note**: Phase 4 必须已运行多次 `ce-review mode:autofix`（批次后 + 收尾，快速 `safe_auto` 修复）。Phase 5 运行 interactive 模式做完整总体审查，覆盖 autofix 未处理的 `gated_auto` 和 `manual` 类问题，也可由用户手动用于审查当前环节产物。
+   - 在 Codex 下，优先使用 reviewer-agent / task spawning 做角色审查 fanout；若支持并发则采用 bounded parallel。只有在当前 harness 明确拿不到 reviewer agents 时，才允许串行 persona passes。
    - **无计划文件时**（trivial fix、emergency hotfix、bug fix 直接进入）：省略 `plan:<path>` 参数，跳过 R-ID 需求追溯验证，仅执行代码质量审查。宣告："无计划文件 -- 跳过 R-ID 需求追溯，仅审查代码质量。"
    - Confidence filter: >= 0.60 (P0 >= 0.50)
    - safe_auto 自动修复，`gated_auto` / `manual` 交用户决策

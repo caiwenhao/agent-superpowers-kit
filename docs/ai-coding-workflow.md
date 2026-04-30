@@ -223,6 +223,7 @@ Wiki Query (项目 wiki/index.md + ~/.claude/wiki/index.md)
 
 多轮语义:
 - 使用 Compound Engineering 的 `ce-doc-review` / `compound-engineering:ce-doc-review`，不要用 standalone `document-review` 替代。
+- Codex 下若 reviewer-agent / task spawning 可用，优先做多 agent reviewer fanout；只有拿不到 reviewer agents 时，才允许降级为串行角色审查，并要明确报告降级。
 - 循环: 审查 -> 修复/用户裁决 -> 再审查，直到零未处理 P0/P1、达到 3 轮上限、或连续两轮发现相同 P0/P1。
 - 达到上限或收敛仍有 P0/P1 时，STOP；只有用户显式接受风险并把理由写入需求文档 Deferred/Open Questions，才允许进入 `/dev:plan`。
 - Codex 没有阻塞提问工具时，用编号选项停下等待用户；不得把单轮主线程综合报告当作通过。
@@ -337,6 +338,7 @@ dev:plan 检测 Implementation Unit 数量，自动选审深度 (Layer 2)
 | Layer 2 | 选中的 `plan-eng-review` / `autoplan` / `plan-design-review` / `plan-devex-review` 必须写入 REVIEW REPORT 并 cleared |
 
 多轮语义:
+- Codex 下若 reviewer-agent / task spawning 可用，优先做多 agent reviewer fanout；只有拿不到 reviewer agents 时，才允许降级为串行角色审查，并要明确报告降级。
 - 循环: 审查 -> 修复/用户裁决 -> 再审查，直到零未处理 P0/P1、达到 3 轮上限、或连续两轮发现相同 P0/P1。
 - 达到上限或收敛仍有 P0/P1 时，STOP；只有用户显式接受风险并把理由写入计划 Deferred/Open Questions 或 Review Notes，才允许进入 `/dev:code`。
 - Codex 没有阻塞提问工具时，用编号选项停下等待用户；不得把单轮主线程综合报告当作通过。
@@ -476,6 +478,8 @@ ce:code-review interactive plan:<path> (核心, 多轮循环最多 3 轮)
     |
     |-- 跨模型对抗审查: Claude + Codex 始终并行派发
     |   大 diff (200+ 行) 额外加 Codex 结构化 P1 门控
+    |-- Codex 路径下，reviewer-agent / task spawning 可用时
+    |   角色审查也应走多 agent fanout；否则才降级为串行 persona passes
     |
     |-- 6 始终启用: correctness, testing, maintainability,
     |               project-standards, agent-native, learnings
