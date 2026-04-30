@@ -16,9 +16,10 @@ argument-hint: "[mode:auto|mode:manual] [task description]"
 ## 通用规则
 
 1. **始终用中文与用户交流。** 所有状态报告、GATE 提示、路由宣告、错误信息均使用中文。技能名称、文件路径、代码保持英文原样。
-2. **工作区前置（强制）。** 在创建任何文档或代码之前，必须确认当前在任务专属 git worktree / feature branch 中。若在 main/master 或分支与当前任务不匹配，STOP 并调用 `compound-engineering:ce-worktree`（Codex 环境使用 `superpowers:using-git-worktrees`）创建工作区后再继续。用户拒绝创建时，STOP 并要求显式确认"在当前分支继续"。
+2. **工作区前置（强制）。** 在创建任何文档或代码之前，必须确认当前在任务专属 git worktree / feature branch 中。若在 main/master 或分支与当前任务不匹配，STOP 并调用 `using-git-worktrees`（Claude Code 下解析为 `superpowers:using-git-worktrees`，Codex 下同名；见 `claude-skills/README.md` 的 Skill Naming 表）创建工作区后再继续。路径必须为 `<repo>/.worktrees/<task-name>/`。用户拒绝创建时，STOP 并要求显式确认"在当前分支继续"。
 3. **提交由用户触发。** Phase 1-5 只修改文件、运行测试，不执行 `git commit` / `git push` / 创建 PR。每个 GATE 结束时不提交；提交仅发生在 Phase 6 `/dev:ship` 由用户显式触发。
-4. **Review 采取多轮循环。** 所有涉及 review 的环节（ce:doc-review、ce:code-review、plan-eng-review 等），执行"审查 -> 修复 -> 再审查"循环，直到：(a) 零 P0/P1 发现，或 (b) 达到最大轮次（默认 3 轮），或 (c) 连续两轮发现相同问题（收敛）。
+4. **Review 采取多轮循环。** 所有涉及 review 的环节（`document-review`、`ce-review`、`plan-eng-review` 等），执行"审查 -> 修复 -> 再审查"循环，直到：(a) 零 P0/P1 发现，或 (b) 达到最大轮次（默认 3 轮），或 (c) 连续两轮发现相同问题（收敛）。
+5. **技能名统一使用扁平规范名**（见 `claude-skills/README.md` 的 Skill Naming 表）。本 SKILL 正文引用的下游技能名（如 `ce-brainstorm`、`using-git-worktrees`、`document-review`、`git-commit-push-pr`、`gstack-*`）在两种环境下都可解析：Claude Code 下 agent 会自动加 `compound-engineering:` / `superpowers:` 前缀；Codex 下名字直接匹配。
 
 ## Overview
 
@@ -76,12 +77,12 @@ git worktree list 2>/dev/null | head -5
 | Finding | Action |
 |---|---|
 | Not in a git repo | STOP: "当前不在 git 仓库中，无法启动研发流程。" |
-| On main/master | STOP: "当前在主分支。调用 `compound-engineering:ce-worktree` 创建任务专属工作区,**路径必须在 `<repo>/.worktrees/<task-name>/`**。"(Codex 环境回退到 `superpowers:using-git-worktrees`) |
-| On a branch but not a task-scoped worktree (分支名与当前任务不匹配 / 共享分支多任务) | STOP: "当前分支与本任务不匹配。调用 `compound-engineering:ce-worktree` 创建独立工作区,路径 `<repo>/.worktrees/<task-name>/`。" |
+| On main/master | STOP: "当前在主分支。调用 `using-git-worktrees` 创建任务专属工作区,**路径必须在 `<repo>/.worktrees/<task-name>/`**。" |
+| On a branch but not a task-scoped worktree (分支名与当前任务不匹配 / 共享分支多任务) | STOP: "当前分支与本任务不匹配。调用 `using-git-worktrees` 创建独立工作区,路径 `<repo>/.worktrees/<task-name>/`。" |
 | User refuses to create a worktree | STOP: "需要用户显式确认 `在当前分支继续` 才能跳过工作区前置。" |
 | Already in task-scoped worktree / feature branch | 继续 Signal 1 |
 
-> **worktree 统一落点约定**:所有 `dev:*` phase 创建的 worktree 必须放在 `<repo>/.worktrees/<name>/`(已在仓库 `.gitignore`)。禁止创建到 `/tmp`、`$HOME/worktrees`、或仓库兄弟目录——方便清理、方便发现、避免遗漏。调用 `compound-engineering:ce-worktree` 时明确传该路径;该 skill 若默认位置不同,在 prompt 里覆盖它。
+> **worktree 统一落点约定**:所有 `dev:*` phase 创建的 worktree 必须放在 `<repo>/.worktrees/<name>/`(已在仓库 `.gitignore`)。禁止创建到 `/tmp`、`$HOME/worktrees`、或仓库兄弟目录——方便清理、方便发现、避免遗漏。调用 `using-git-worktrees` 时明确传该路径;该 skill 若默认位置不同,在 prompt 里覆盖它。
 
 ### Signal 1: Is there unfinished work from a previous session?
 
@@ -99,7 +100,7 @@ gh pr view --json state,title 2>&1
 | Finding | Enter At |
 |---|---|
 | Plan with `status: active`, unchecked Implementation Units | Phase 4 (code) -- resume execution |
-| Uncommitted code changes + recent ce:code-review run | Phase 6 (ship) -- ready to deliver |
+| Uncommitted code changes + recent ce-review run | Phase 6 (ship) -- ready to deliver |
 | Uncommitted code changes, no review evidence | Phase 5 (verify) -- needs review |
 | Open PR with unresolved review threads | Phase 6 (ship) -- resolve feedback, then ship |
 | Plan with `status: active`, all units checked, no code changes | Phase 5 (verify) -- confirm completion |
@@ -141,7 +142,7 @@ ls DESIGN.md 2>/dev/null
 # Plans
 ls docs/plans/*-plan.md 2>/dev/null
 
-# Recent ce:code-review runs
+# Recent ce-review runs
 ls .context/compound-engineering/ce-review/ 2>/dev/null
 ```
 
@@ -181,19 +182,19 @@ Once the entry phase is determined, `dev:flow` drives through the pipeline:
       |                       |
       v                       |
   Phase 3: /dev:plan  <-------+
-      |  ce:plan -> auto-select review depth
+      |  ce-plan -> auto-select review depth
       |  Output: plan doc with Impl Units
       |  GATE: plan-eng-review CLEARED
       |
       v
   Phase 4: /dev:code
-      |  ce:work auto-selects strategy
-      |  Built-in: ce:code-review mode:autofix
+      |  ce-work auto-selects strategy
+      |  Built-in: ce-review mode:autofix
       |  GATE: all tasks done, tests pass
       |
       v
   Phase 5: /dev:verify
-      |  ce:code-review full + auto-stack layers
+      |  ce-review full + auto-stack layers
       |  GATE: PASS verdict
       |
       v
@@ -327,7 +328,7 @@ echo "主干偏离: $BEHIND commits behind main"
 
 ### Phase 4 长实现阶段的额外检查
 
-Phase 4 (`dev:code`) 中，如果 `ce:work` 执行超过 3 个 Implementation Unit，在每 3 个 Unit 完成后插入一次主干同步检查（与 `/simplify` 节奏类似）：
+Phase 4 (`dev:code`) 中，如果 `ce-work` 执行超过 3 个 Implementation Unit，在每 3 个 Unit 完成后插入一次主干同步检查（与 `/simplify` 节奏类似）：
 
 ```
 --- 主干同步检查 (Unit 3 完成后) ---
@@ -376,9 +377,9 @@ dev:flow (main line of work)
   |             /dev:flow in a new worktree for parallel development."
   |
   +-- User says "pause this, work on something else"
-  |   -> 调用 `/gstack-context-save` 保存当前状态 (branch, progress, decisions)
+  |   -> 调用 `gstack-context-save` 保存当前状态 (branch, progress, decisions)
   |   -> Start new /dev:flow for the new work item
-  |   -> When done, `/gstack-context-restore` 恢复暂停的流程
+  |   -> When done, `gstack-context-restore` 恢复暂停的流程
 ```
 
 ## Phase Skip Rules
@@ -420,8 +421,8 @@ dev:flow 检测:
 
 Phase 1 (/dev:discover):
   场景: 明确功能，中等范围 -> Route C (Standard brainstorm)
-  -> ce:brainstorm 产出需求文档 R1-R4
-  -> ce:doc-review: 通过（2 轮循环，第 1 轮修复 1 个一致性问题）
+  -> ce-brainstorm 产出需求文档 R1-R4
+  -> document-review: 通过（2 轮循环，第 1 轮修复 1 个一致性问题）
   -> 检测到 UI: 是（通知设置页面）
   GATE (`mode:manual`): "需求已就绪。检测到 UI。进入 Phase 2?"
   GATE (`mode:auto`): "需求已就绪。检测到 UI。自动进入 Phase 2。"
@@ -434,26 +435,26 @@ Phase 2 (/dev:design):
   GATE (`mode:auto`): "设计方向已确认。自动进入 Phase 3。"
 
 Phase 3 (/dev:plan):
-  -> ce:plan 产出 4 个实施单元
-  -> ce:doc-review: 通过
+  -> ce-plan 产出 4 个实施单元
+  -> document-review: 通过
   -> 检测到 4 单元 -> plan-eng-review + plan-design-review
   -> plan-eng-review: CLEARED
   GATE (`mode:manual`): "计划已审查通过。进入 Phase 4?"
   GATE (`mode:auto`): "计划已审查通过。自动进入 Phase 4。"
 
 Phase 4 (/dev:code):
-  -> ce:work 检测 4 单元，2 个独立 -> 并行+串行策略
+  -> ce-work 检测 4 单元，2 个独立 -> 并行+串行策略
   -> Unit 1-2 (并行): 邮件服务 + 通知模型
   -> Unit 3-4 (串行): 控制器 + 设置页面
-  -> ce:code-review mode:autofix: 修复 2 个 safe_auto 问题
+  -> ce-review mode:autofix: 修复 2 个 safe_auto 问题
   GATE (`mode:manual`): "所有单元完成。测试通过。进入 Phase 5?"
   GATE (`mode:auto`): "所有单元完成。测试通过。自动进入 Phase 5。"
 
 Phase 5 (/dev:verify):
-  -> ce:code-review interactive: 8 个 persona 激活（含邮件处理的 security）
+  -> ce-review interactive: 8 个 persona 激活（含邮件处理的 security）
   -> 第 1 轮: 发现 1 个 P1 (邮件注入风险) + 1 个 P2
   -> 修复 -> 第 2 轮: 零 P0/P1 -> 通过
-  -> ce:test-browser: 通知设置页面测试通过
+  -> test-browser: 通知设置页面测试通过
   GATE (`mode:manual`): "验证通过。进入 Phase 6?"
   GATE (`mode:auto`): "验证通过。自动进入 Phase 6。"
 
@@ -469,7 +470,7 @@ Phase 6 (/dev:ship):
 
 Phase 7 (/dev:learn):
   场景: 功能已发布，邮件服务模式是新的 -> Route A
-  -> ce:compound 记录邮件通知模式
+  -> ce-compound 记录邮件通知模式
   -> "知识已沉淀。准备进入下一个工作项。"
 ```
 

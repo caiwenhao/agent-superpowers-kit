@@ -1,6 +1,6 @@
 ---
 name: dev-code
-description: "Use when a reviewed plan exists and it is time to write code. Routes through ce:work, which detects plan complexity and auto-selects execution strategy (inline, serial agents, parallel agents, or swarm)."
+description: "Use when a reviewed plan exists and it is time to write code. Routes through ce-work, which detects plan complexity and auto-selects execution strategy (inline, serial agents, parallel agents, or swarm)."
 ---
 
 <SUPERVISE-CHECK>
@@ -15,13 +15,13 @@ description: "Use when a reviewed plan exists and it is time to write code. Rout
 ## 通用规则
 
 1. **始终用中文与用户交流。** 所有状态报告、GATE 提示均使用中文。
-2. **工作区前置（强制）。** 开始写代码前执行 `git rev-parse --abbrev-ref HEAD` 检查当前分支。若在 main/master 或未进入任务专属 worktree，STOP 并调用 `compound-engineering:ce-worktree`（或 `superpowers:using-git-worktrees`）创建工作区后再继续。
+2. **工作区前置（强制）。** 开始写代码前执行 `git rev-parse --abbrev-ref HEAD` 检查当前分支。若在 main/master 或未进入任务专属 worktree，STOP 并调用 `using-git-worktrees` 创建工作区后再继续（路径 `<repo>/.worktrees/<task-name>/`；规范名与环境别名见 `claude-skills/README.md` 的 Skill Naming 表）。
 3. **提交由用户触发。** Phase 4 只做文件修改、运行测试、必要时 `git add` 暂存，**不执行** `git commit` / `git push` / 创建 PR。提交仅在 `/dev:ship`（Phase 6）由用户显式触发。
-4. **Review 自动修复回路。** `dev-code` 是外层编排器：按 2-3 个 Implementation Units 切批调用 `ce:work`，每批后运行 `ce:code-review mode:autofix`；所有 Unit 完成后先 `/simplify`，再运行最终 autofix。Phase 4 只自动应用 `safe_auto`，不做 `gated_auto/manual` 用户裁决；残余发现进入 Phase 5 的总体审查。
+4. **Review 自动修复回路。** `dev-code` 是外层编排器：按 2-3 个 Implementation Units 切批调用 `ce-work`，每批后运行 `ce-review mode:autofix`；所有 Unit 完成后先 `/simplify`，再运行最终 autofix。Phase 4 只自动应用 `safe_auto`，不做 `gated_auto/manual` 用户裁决；残余发现进入 Phase 5 的总体审查。
 
 ## Overview
 
-Phase 4 executes the plan. The single entry point is `ce:work`, which **detects** plan complexity and **auto-selects** the best execution strategy. Auxiliary skills are **auto-triggered** by context signals -- not by the user.
+Phase 4 executes the plan. The single entry point is `ce-work`, which **detects** plan complexity and **auto-selects** the best execution strategy. Auxiliary skills are **auto-triggered** by context signals -- not by the user.
 
 Position in workflow: Phase 3 (planning) -> **Phase 4** -> Phase 5 (verification)
 
@@ -32,11 +32,11 @@ Position in workflow: Phase 3 (planning) -> **Phase 4** -> Phase 5 (verification
 
 **Never skip Phase 4.**
 
-## Scene Detection (performed by `ce:work` internally)
+## Scene Detection (performed by `ce-work` internally)
 
 **Signal 1: Is there a plan file?**
 - No plan file, no bare prompt -> STOP, return to `/dev:plan`
-- No plan file, has bare prompt -> `ce:work` assesses complexity:
+- No plan file, has bare prompt -> `ce-work` assesses complexity:
   - Trivial (1-2 files) -> proceed inline
   - Large (10+ files, cross-cutting) -> recommend `/dev:discover` + `/dev:plan` first
 
@@ -66,22 +66,22 @@ Position in workflow: Phase 3 (planning) -> **Phase 4** -> Phase 5 (verification
 
 ## Workflow
 
-1. **`ce:work` detects scene** and announces (中文):
+1. **`ce-work` detects scene** and announces (中文):
    - "计划有 5 个单元，其中 2 个独立 -- 对 Unit 1-2 使用并行 Agent，Unit 3-5 使用串行。"
    - "裸提示，影响 2 个文件 -- 内联执行。"
    - "计划 Unit 3 标记为 test-first -- 该单元使用 TDD。"
 
-2. **`dev-code` slices execution into batches, then invokes `ce:work` for each batch**
+2. **`dev-code` slices execution into batches, then invokes `ce-work` for each batch**
    - Batch size: 2-3 Implementation Units by default; one batch is fine for small plans.
-   - Pass the plan path plus the current batch's Unit IDs/goals to `ce:work`; instruct it to execute only that batch.
-   - Use `ce:work` as an implementation executor only: Implement -> Test Discovery -> System-Wide Test Check -> stage allowed, **no commit**.
-   - Do not let `ce:work` enter its own shipping workflow / residual-review gate. Phase 4 residuals are recorded and handed to Phase 5.
+   - Pass the plan path plus the current batch's Unit IDs/goals to `ce-work`; instruct it to execute only that batch.
+   - Use `ce-work` as an implementation executor only: Implement -> Test Discovery -> System-Wide Test Check -> stage allowed, **no commit**.
+   - Do not let `ce-work` enter its own shipping workflow / residual-review gate. Phase 4 residuals are recorded and handed to Phase 5.
 
-3. **REVIEW AUTOFIX LOOP: `ce:code-review mode:autofix`** (Phase 4 自动修复回路)
+3. **REVIEW AUTOFIX LOOP: `ce-review mode:autofix`** (Phase 4 自动修复回路)
    - 默认 Tier 2: 20+ persona 并行审查, `safe_auto` 修复, R-ID 追溯
    - Tier 1 (仅当全部满足: 纯新增 + 单一关注点 + 模式跟随 + 忠于计划)
    - 传入 `plan:<path>` 用于需求追溯验证
-   - **批次触发**: 每个 `ce:work` batch 完成后立即运行一次；若是单批次/小改动，至少在实现完成后运行一次
+   - **批次触发**: 每个 `ce-work` batch 完成后立即运行一次；若是单批次/小改动，至少在实现完成后运行一次
    - **最终触发**: 所有 Unit 完成并运行 `/simplify` 后，再运行一次最终 autofix，覆盖 simplification edits
    - **单次运行内部循环**: `mode:autofix` 自动执行 bounded re-review，应用 `safe_auto -> review-fixer` 后重审，直到无新的 `safe_auto` 或达到上游轮次上限
    - **边界**: Phase 4 不处理 `gated_auto` / `manual` / `human` / `release` 决策；这些残余必须记录为 downstream work/todo，交给 Phase 5 interactive 总体审查处理
@@ -91,7 +91,7 @@ Position in workflow: Phase 3 (planning) -> **Phase 4** -> Phase 5 (verification
    - 所有 Unit 完成后、进入 `/dev:verify` 之前，调用 `/simplify`
    - 三 agent 并行扫整个累积 diff：复用（找已有 util 替换）/ 质量（冗余 state、参数堆砌、复制粘贴、stringly-typed、无用注释）/ 效率（重复计算、可并行化串行、热路径臃肿、no-op 更新、TOCTOU、内存泄漏）
    - 直接修复发现的问题，false positive 跳过不争论
-   - `/simplify` 之后必须再运行一次 `ce:code-review mode:autofix plan:<path>`；这才是 Phase 4 的最终 autofix pass
+   - `/simplify` 之后必须再运行一次 `ce-review mode:autofix plan:<path>`；这才是 Phase 4 的最终 autofix pass
    - **跳过条件**: diff < 10 行 trivial 改动 / 仅文档变更 / 中途某 Unit 已单独跑过且后续无重大新增
 
    **GATE: 所有任务完成。测试通过。`/simplify` 已扫过。final autofix 已覆盖 `/simplify` 后 diff，`safe_auto` 已应用。残余 `gated_auto/manual` todo 已记录并交给 Phase 5。**
@@ -103,7 +103,7 @@ Position in workflow: Phase 3 (planning) -> **Phase 4** -> Phase 5 (verification
 | | Value |
 |---|---|
 | **Input** | Plan file path from Phase 3 (or bare prompt for small work) |
-| **Output** | 已修改的代码 + 通过的测试 + Phase 4 多次 `ce:code-review mode:autofix` 的 `safe_auto` 已应用 + `/simplify` 已扫过（**未 commit**，工作树留有变更） |
+| **Output** | 已修改的代码 + 通过的测试 + Phase 4 多次 `ce-review mode:autofix` 的 `safe_auto` 已应用 + `/simplify` 已扫过（**未 commit**，工作树留有变更） |
 | **Next** | `/dev:verify` (Phase 5) |
 
 ## Iron Laws

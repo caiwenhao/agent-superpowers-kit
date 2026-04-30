@@ -1,6 +1,6 @@
 ---
 name: dev-verify
-description: "Use after implementation to run multi-layer quality verification. Detects diff content to auto-select which review personas and additive layers to activate. ce:code-review is always the core gate."
+description: "Use after implementation to run multi-layer quality verification. Detects diff content to auto-select which review personas and additive layers to activate. ce-review is always the core gate."
 ---
 
 <SUPERVISE-CHECK>
@@ -15,13 +15,13 @@ description: "Use after implementation to run multi-layer quality verification. 
 ## 通用规则
 
 1. **始终用中文与用户交流。** 所有状态报告、GATE 提示、审查结果均使用中文。
-2. **工作区前置（强制）。** 执行 `git rev-parse --abbrev-ref HEAD` 检查当前分支。若在 main/master 或未进入任务专属 worktree，STOP 并调用 `compound-engineering:ce-worktree`（或 `superpowers:using-git-worktrees`）创建工作区。审查目标必须是当前任务的工作树（无论是否已 commit）。
+2. **工作区前置（强制）。** 执行 `git rev-parse --abbrev-ref HEAD` 检查当前分支。若在 main/master 或未进入任务专属 worktree，STOP 并调用 `using-git-worktrees` 创建工作区（路径 `<repo>/.worktrees/<task-name>/`；规范名与环境别名见 `claude-skills/README.md` 的 Skill Naming 表）。审查目标必须是当前任务的工作树（无论是否已 commit）。
 3. **提交由用户触发。** 本阶段只读取代码、运行测试与审查工具、生成审查报告，不执行 `git commit` / `git push` / 创建 PR。审查中发现的修复同样不主动 commit；提交在 `/dev:ship`（Phase 6）由用户显式触发。
-4. **总体审查门禁。** Phase 5 是完整 diff / 当前产物的 interactive 总体审查，不替代 Phase 4 的自动修复回路。`ce:code-review` interactive 模式处理 `safe_auto` 之外的 `gated_auto` / `manual` 用户裁决，并执行"审查->修复/裁决->再审查"直到零未处理 P0/P1 或 3 轮上限。每个 additive layer 同样循环。
+4. **总体审查门禁。** Phase 5 是完整 diff / 当前产物的 interactive 总体审查，不替代 Phase 4 的自动修复回路。`ce-review` interactive 模式处理 `safe_auto` 之外的 `gated_auto` / `manual` 用户裁决，并执行"审查->修复/裁决->再审查"直到零未处理 P0/P1 或 3 轮上限。每个 additive layer 同样循环。
 
 ## Overview
 
-Phase 5 is the quality gate for the whole current artifact. `ce:code-review` **detects** diff content and **auto-selects** 6-20+ persona reviewers. Additional verification layers are **auto-stacked** based on what changed. Phase 4 should already have run `mode:autofix`; Phase 5 reviews the complete result and handles residual or judgment-requiring findings.
+Phase 5 is the quality gate for the whole current artifact. `ce-review` **detects** diff content and **auto-selects** 6-20+ persona reviewers. Additional verification layers are **auto-stacked** based on what changed. Phase 4 should already have run `mode:autofix`; Phase 5 reviews the complete result and handles residual or judgment-requiring findings.
 
 Position in workflow: Phase 4 (code) -> **Phase 5** -> Phase 6 (delivery)
 
@@ -34,9 +34,9 @@ Position in workflow: Phase 4 (code) -> **Phase 5** -> Phase 6 (delivery)
 
 ## Scene Detection
 
-### Core Review (always, auto-detected by `ce:code-review`)
+### Core Review (always, auto-detected by `ce-review`)
 
-`ce:code-review` reads the diff and auto-selects reviewers:
+`ce-review` reads the diff and auto-selects reviewers:
 
 **Always-on (every review, no detection needed):**
 - correctness, testing, maintainability, project-standards, agent-native, learnings
@@ -62,7 +62,7 @@ Position in workflow: Phase 4 (code) -> **Phase 5** -> Phase 6 (delivery)
 
 | Detected Signal | Auto-stacked Layer |
 |---|---|
-| Diff touches `views/`, `components/`, `*.tsx`, `*.css`, `*.html` | `ce:test-browser` (affected routes) **或** `dev-browser`（轻量 stdin 脚本，跨 harness 通用） |
+| Diff touches `views/`, `components/`, `*.tsx`, `*.css`, `*.html` | `test-browser` (affected routes) **或** `dev-browser`（轻量 stdin 脚本，跨 harness 通用） |
 | 5+ UI files changed across multiple pages | `gstack/qa` (full site) + `design-review` **或** `dev-browser`（脚本化遍历多页路由） |
 | Diff touches `auth`, `payment`, `secret`, `token`, `*.pem` | `gstack/cso` (OWASP + STRIDE) |
 | Diff touches `prompt`, `llm`, `ai`, `openai`, `anthropic` | `gstack/review` (LLM trust boundary) |
@@ -72,7 +72,7 @@ Position in workflow: Phase 4 (code) -> **Phase 5** -> Phase 6 (delivery)
 
 ## Workflow
 
-1. **`ce:code-review` auto-detects and announces team:**
+1. **`ce-review` auto-detects and announces team:**
    ```
    Review team:
    - correctness (always)
@@ -86,8 +86,8 @@ Position in workflow: Phase 4 (code) -> **Phase 5** -> Phase 6 (delivery)
    - adversarial -- diff is 120 lines touching auth
    ```
 
-2. **REVIEW (Core): `/ce:code-review plan:<plan-path>`** (interactive mode, 完整独立审查, 多轮循环)
-   - **Note**: Phase 4 必须已运行多次 `ce:code-review mode:autofix`（批次后 + 收尾，快速 `safe_auto` 修复）。Phase 5 运行 interactive 模式做完整总体审查，覆盖 autofix 未处理的 `gated_auto` 和 `manual` 类问题，也可由用户手动用于审查当前环节产物。
+2. **REVIEW (Core): `ce-review plan:<plan-path>`** (interactive mode, 完整独立审查, 多轮循环)
+   - **Note**: Phase 4 必须已运行多次 `ce-review mode:autofix`（批次后 + 收尾，快速 `safe_auto` 修复）。Phase 5 运行 interactive 模式做完整总体审查，覆盖 autofix 未处理的 `gated_auto` 和 `manual` 类问题，也可由用户手动用于审查当前环节产物。
    - **无计划文件时**（trivial fix、emergency hotfix、bug fix 直接进入）：省略 `plan:<path>` 参数，跳过 R-ID 需求追溯验证，仅执行代码质量审查。宣告："无计划文件 -- 跳过 R-ID 需求追溯，仅审查代码质量。"
    - Confidence filter: >= 0.60 (P0 >= 0.50)
    - safe_auto 自动修复，`gated_auto` / `manual` 交用户决策

@@ -18,7 +18,7 @@ description: "Use when Phase 5 has passed and code is ready to deliver. Detects 
 1. **始终用中文与用户交流。** 所有状态报告、GATE 提示、路由宣告均使用中文。
 2. **工作区前置（强制）。** 执行 `git rev-parse --abbrev-ref HEAD` 检查当前分支。若在 main/master 或未进入任务专属 worktree，STOP 并要求用户先创建/切换到 feature branch；禁止在主分支直接 commit/push。
 3. **提交由用户显式触发。** 前置阶段（Phase 1-5）绝不主动 commit/push/PR。本阶段（Phase 6）是**唯一**可以 commit/push/创建 PR 的阶段，且要求用户已显式调用 `/dev:ship` 或明确说"提交/commit/push/PR/上线"。这类指令一旦给出，就视为**对所选交付路径的整体授权**；不要把授权拆成 commit / push / merge / deploy 多次重复确认。
-4. **Review 多轮循环。** Path B 中 `gstack/ship` 的 pre-landing review 和 adversarial review 执行多轮循环。
+4. **Review 多轮循环。** Path B 中 `gstack-ship` 的 pre-landing review 和 adversarial review 执行多轮循环。
 5. **合并后自动删除当前工作区。** 一旦代码已合入 main（Path A 成功 push main，Path B/C 的 `land-and-deploy` 确认 merge），`dev-ship` 自动删除当前任务 worktree 并清理本地 feature branch。Merge-readiness GATE 必须提前展示将删除的 worktree 路径；合并成功后不再二次确认。
 6. **确认收敛到 phase 级。** 只有以下情况才再次 GATE：`(a)` 路径存在多个有效选择且无法安全自动判定；`(b)` merge-readiness / deploy 报告出现 blocker、风险取舍或缺少关键信息；`(c)` 用户明确要求逐步确认。除此之外，按已选路径直接执行到底。
 
@@ -51,12 +51,12 @@ Position in workflow: Phase 5 (verify) -> **Phase 6** -> Phase 7 (knowledge)
 - 其他情况 -> Path A (squash 合并回 main，默认)
 
 **Signal 3: What upstream quality was already applied?**
-- `ce:code-review` ran in Phase 4/5 (check `.context/compound-engineering/ce-review/` for recent run) -> upstream quality confirmed
-- No ce:code-review evidence + versioned project -> Path C (needs ship's built-in review)
+- `ce-review` ran in Phase 4/5 (check `.context/compound-engineering/ce-review/` for recent run) -> upstream quality confirmed
+- No ce-review evidence + versioned project -> Path C (needs ship's built-in review)
 
 **Signal 4: PR feedback pending?**
 - Run `gh pr view --json reviewDecision,comments` on current branch
-- Unresolved review threads exist -> prepend `resolve-pr-feedback`
+- Unresolved review threads exist -> prepend `pr-comment-resolver`
 
 **Signal 5: UI changes in diff?**
 - Scan diff for `views/`, `components/`, `*.tsx`, `*.css`, `*.html` -> add `feature-video` + 部署后 `dev-browser` 烟测（关键路由 + 控制台无 error）
@@ -70,7 +70,7 @@ Position in workflow: Phase 5 (verify) -> **Phase 6** -> Phase 7 (knowledge)
   |   squash merge + 中文 commit message，保持主干干净 -> 自动删除当前 worktree
   |
   +-- [用户显式要求 PR / 团队协作项目] ----------------> Path B: PR 路径
-  |   ce:commit-push-pr -> land-and-deploy -> 自动删除当前 worktree
+  |   git-commit-push-pr -> land-and-deploy -> 自动删除当前 worktree
   |
   +-- [版本化项目 (有 VERSION 文件)] ------------------> Path C: gstack 完整发布
   |   ship -> document-release -> land-and-deploy -> 自动删除当前 worktree
@@ -95,7 +95,7 @@ Position in workflow: Phase 5 (verify) -> **Phase 6** -> Phase 7 (knowledge)
    - "PR 有 3 个未解决的审查线程 -- 先处理反馈。"
 
 2. **Pre-delivery** (if detected):
-   - Run `/ce:resolve-pr-feedback` for pending PR comments
+   - Run `pr-comment-resolver` for pending PR comments
 
 3. **Execute detected path**
 
@@ -146,20 +146,20 @@ Position in workflow: Phase 5 (verify) -> **Phase 6** -> Phase 7 (knowledge)
 
    **Path B: PR 路径（用户显式要求时）**
    ```
-   /ce:commit-push-pr
+   git-commit-push-pr
      - Delegates to `ce-pr-description` for PR title/body generation
      - Auto-detects conventions from repo history
      - Logical commit splitting (file-level)
      [+ feature-video in parallel if UI detected]
-   /gstack-land-and-deploy
+   gstack-land-and-deploy
      - CI wait -> merge-readiness report -> merge -> deploy -> canary
-   /dev-ship cleanup
+   dev-ship cleanup
      - Merge 确认后自动删除当前任务 worktree + 本地 feature branch
    ```
 
    **Path C: gstack 完整发布路径（版本化项目）**
    ```
-   /gstack-ship
+   gstack-ship
      - Merge base branch -> parallel tests -> coverage audit (60%/80%)
      - Plan completion audit + scope drift detection
      - REVIEW: pre-landing code review (auto, Step 3.5, 最多 3 轮)
@@ -167,18 +167,18 @@ Position in workflow: Phase 5 (verify) -> **Phase 6** -> Phase 7 (knowledge)
      - Version bump + CHANGELOG generation
      - Bisectable commits (dependency-ordered)
      [+ feature-video in parallel if UI detected]
-   /gstack-document-release
+   gstack-document-release
      - Cross-references all docs against diff
      - Auto-updates factual changes, asks on narrative changes
-   /gstack-land-and-deploy
+   gstack-land-and-deploy
      - CI wait -> merge-readiness report -> merge -> deploy -> canary
-   /dev-ship cleanup
+   dev-ship cleanup
      - Merge 确认后自动删除当前任务 worktree + 本地 feature branch
    ```
 
 4. **`land-and-deploy` auto-detects** deployment platform and canary depth:
    - Platform: from `fly.toml` / `vercel.json` / `render.yaml` / `Procfile` / GitHub Actions
-   - **Greenfield 检测**: 如果没有任何部署配置文件，宣告："未检测到部署配置 -- 运行 `/gstack-setup-deploy` 创建部署设置。" 先配置再部署。
+   - **Greenfield 检测**: 如果没有任何部署配置文件，宣告："未检测到部署配置 -- 运行 `gstack-setup-deploy` 创建部署设置。" 先配置再部署。
    - Canary depth by diff type: docs->skip, config->smoke, backend->console, frontend->full（frontend 全量优先用 `dev-browser --headless` + Playwright API 脚本跑关键路由 + 表单 + 控制台 error 检查）
 
    执行规则：

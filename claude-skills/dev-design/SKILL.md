@@ -15,7 +15,7 @@ description: "Use when a requirements doc exists and the work involves UI, visua
 ## 通用规则
 
 1. **始终用中文与用户交流。** 所有状态报告、GATE 提示、路由宣告均使用中文。
-2. **工作区前置（强制）。** 在创建任何设计文档或代码之前，执行 `git rev-parse --abbrev-ref HEAD` 检查当前分支。若在 main/master 或未进入任务专属 worktree，STOP 并调用 `compound-engineering:ce-worktree`（或 `superpowers:using-git-worktrees`）创建工作区后再继续。
+2. **工作区前置（强制）。** 在创建任何设计文档或代码之前，执行 `git rev-parse --abbrev-ref HEAD` 检查当前分支。若在 main/master 或未进入任务专属 worktree，STOP 并调用 `using-git-worktrees` 创建工作区后再继续（路径 `<repo>/.worktrees/<task-name>/`；规范名与环境别名见 `claude-skills/README.md` 的 Skill Naming 表）。
 3. **提交由用户触发。** 本阶段只写文件、运行只读命令，不执行 `git commit` / `git push` / 创建 PR。提交动作只在 `/dev:ship`（Phase 6）由用户显式触发。
 4. **Review 多轮循环。** Spec Review Loop 执行"审查->修复->再审查"循环，最多 3 轮。
 
@@ -82,9 +82,9 @@ Requirements Doc (from Phase 1)
 
 2. **Execute the detected route**
 
-   **Route A**: Run `/gstack-design-consultation` -> output `DESIGN.md` -> then `/gstack-design-shotgun`
-   **Route B**: Run `/gstack-design-shotgun` with `DESIGN.md` as constraint
-   **Route C**: Note for Phase 3 to run `/gstack-plan-design-review`
+   **Route A**: Run `gstack-design-consultation` -> output `DESIGN.md` -> then `gstack-design-shotgun`
+   **Route B**: Run `gstack-design-shotgun` with `DESIGN.md` as constraint
+   **Route C**: Note for Phase 3 to run `gstack-plan-design-review`
 
 3. **REVIEW: Spec Review Loop 多轮循环** (内嵌在 `design-consultation`)
    - 独立子 Agent 对抗审查 (5 维度: Completeness / Consistency / Clarity / Scope / Feasibility)
@@ -94,7 +94,7 @@ Requirements Doc (from Phase 1)
 
    **GATE: `DESIGN.md` 通过审查（零 P0/P1）+ `approved.json` 存在 + 用户确认方向。**
 
-4. **(Optional)** Run `/gstack-design-html` to generate high-fidelity prototype
+4. **(Optional)** Run `gstack-design-html` to generate high-fidelity prototype
 
 5. **Next**: `/dev:plan` (Phase 3)
 
@@ -111,8 +111,8 @@ Requirements Doc (from Phase 1)
 > No implementation begins until the visual direction is approved. `DESIGN.md` is the design source of truth -- deviations are defects.
 
 `DESIGN.md` is the design anchor -- all downstream skills consume or enforce it:
-- `/gstack-design-shotgun` constrains variant generation
-- `/gstack-plan-design-review` calibrates ratings against it
-- `/gstack-design-html` extracts tokens from it
-- `/gstack-design-review` scores deviations as higher severity
-- `frontend-design` detects and follows it automatically in `/ce:work`
+- `gstack-design-shotgun` constrains variant generation
+- `gstack-plan-design-review` calibrates ratings against it
+- `gstack-design-html` extracts tokens from it
+- `gstack-design-review` scores deviations as higher severity
+- `frontend-design` detects and follows it automatically in `ce-work`
