@@ -23,12 +23,12 @@ There is no build, lint, or test target at the repo root. All "code" here is Mar
 
 ## How `dev:*` composes
 
-Each `dev-*/SKILL.md` is a **thin phase-gate router** — it detects context, announces the route in Chinese, then delegates to downstream skills. Most delegation targets (`ce:*`, `gstack-*`) live in the vendored upstream libraries.
+Each `dev-*/SKILL.md` is a **thin phase-gate router** — it detects context, announces the route in Chinese, then delegates to downstream skills (by their **canonical flat name**; see `claude-skills/README.md` → Skill Naming).
 
-- Claude Code environment: all referenced `ce:*` / `gstack-*` / `superpowers:*` skills are available via the installed plugins.
-- Codex environment: `gstack-*` references degrade gracefully — users perform the step manually or substitute a `ce:*` / `superpowers:*` equivalent. We deliberately do **not** fork a Codex-specific variant; single-source is the working contract.
-
-When editing a `dev-*` skill, verify that downstream references still resolve in Claude Code (the primary target) before worrying about Codex.
+- **Naming**: SKILL bodies cite skills by Codex-flat canonical names (`ce-brainstorm`, `using-git-worktrees`, `document-review`, `git-commit-push-pr`, `gstack-*`). Both harnesses resolve: Claude Code prepends `compound-engineering:` / `superpowers:` via the aliasing table; Codex matches the flat directory name directly.
+- **Claude Code environment**: upstream skills come from `compound-engineering-plugin`, `superpowers`, `gstack` installed as plugins under `~/.claude/plugins/` (also discoverable via `~/.claude/skills/` symlinks).
+- **Codex environment**: upstream skills come from `~/.codex/skills/` (flat) and `~/.codex/superpowers/skills/`. `gstack-*`、`ce-*`、superpowers 套件均**应已安装**；若某项缺失，`dev:doctor` 会在当前 harness 栏里报告。不再假定 gstack 必然只在 Claude Code 可用。
+- **Single source**: we deliberately do **not** fork a Codex-specific variant. When editing a `dev-*` skill, run `dev:doctor` to confirm both harnesses still resolve the referenced canonical names.
 
 ## Iron laws (codified in every `dev-*` skill)
 
@@ -39,10 +39,10 @@ These override generic coding practice. When in doubt, trust the skill body:
 3. **根因先于修复** — no fix without understanding why
 4. **证据先于断言** — no "it works" without running the command
 5. **验证先于采纳** — verify review feedback before implementing
-6. **工作区先于工作** — every `dev-*` phase starts by running `git rev-parse --abbrev-ref HEAD`; if on main/master or not in a task-scoped worktree, STOP and create one via `compound-engineering:git-worktree` (fallback `superpowers:using-git-worktrees`). **约定位置:所有 worktree 必须创建在 `<repo>/.worktrees/<name>/`,统一一处,不散落到 `/tmp` 或兄弟目录。** `.worktrees/` 已在 `.gitignore`。
-7. **提交由用户触发** — Phases 1-5 and 7 never `git commit` / `git push` / create PRs; commits only happen in Phase 6 (`/dev:ship`) after explicit user request
+6. **工作区先于工作** — every `dev-*` phase starts by running `git rev-parse --abbrev-ref HEAD`; if on main/master or not in a task-scoped worktree, STOP and create one via `using-git-worktrees` (canonical name; Claude Code alias `superpowers:using-git-worktrees`, Codex flat name same). **约定位置:所有 worktree 必须创建在 `<repo>/.worktrees/<name>/`,统一一处,不散落到 `/tmp` 或兄弟目录。** `.worktrees/` 已在 `.gitignore`。
+7. **提交由用户触发** — Phases 1-5 and 7 never `git commit` / `git push` / create PRs; commits only happen in Phase 6 (`/dev:ship`) after explicit user authorization — either `/dev:ship` directly, reaching Phase 6 under `/dev:flow mode:auto`, or an explicit "提交/commit/push/PR/上线" utterance. Once that authorization exists, the ship path runs end-to-end without per-step reconfirmation unless a blocker or ambiguous choice appears.
 
-Rule 7 is strict: even when all tests pass and diffs look clean, leave changes staged/unstaged. The user triggers the commit.
+Rule 7 is strict outside the authorized ship path: even when all tests pass and diffs look clean, leave changes staged/unstaged. The user triggers the ship path; within the ship path, confirmations collapse to phase-level gates.
 
 ## Language
 
