@@ -41,18 +41,17 @@ Position in workflow: Phase 5 (verify) -> **Phase 6** -> Phase 7 (knowledge)
 - `git fetch origin main && git rev-list --count HEAD..origin/main` -> 落后 >0 则先 rebase
 - rebase 有冲突时协助解决，解决后继续
 
-**Signal 1: Does the project use versioning?**
-- `VERSION` file exists OR `package.json` has `version` field -> versioned project -> Path C
-- No version file -> check Signal 2
+**Signal 1: 用户是否显式要求发布 / 版本变更 / 自动部署?**
+- 用户明确说"release"/"版本发布"/"bump version"/"更新 CHANGELOG"/"自动部署"/"deploy to prod" -> Path C（发布路径）
+- 其他情况 -> check Signal 2
 
 **Signal 2: 用户是否显式要求 PR?**
 - 用户说"创建 PR"/"open PR"/"pull request" -> Path B (PR 路径)
-- 项目有 CI/CD 依赖 PR（检测 `.github/workflows/` 中有 `pull_request` trigger）-> 建议 Path B
 - 其他情况 -> Path A (squash 合并回 main，默认)
 
 **Signal 3: What upstream quality was already applied?**
 - `ce-review` ran in Phase 4/5 (check `.context/compound-engineering/ce-review/` for recent run) -> upstream quality confirmed
-- No ce-review evidence + versioned project -> Path C (needs ship's built-in review)
+- No ce-review evidence -> STOP，先回 `/dev:verify`
 
 **Signal 4: PR feedback pending?**
 - Run `gh pr view --json reviewDecision,comments` on current branch
@@ -69,13 +68,11 @@ Position in workflow: Phase 5 (verify) -> **Phase 6** -> Phase 7 (knowledge)
   +-- [默认] -----------------------------------------> Path A: Squash 合并回 main
   |   squash merge + 中文 commit message，保持主干干净 -> 自动删除当前 worktree
   |
-  +-- [用户显式要求 PR / 团队协作项目] ----------------> Path B: PR 路径
+  +-- [用户显式要求 PR] ------------------------------> Path B: PR 路径
   |   git-commit-push-pr -> land-and-deploy -> 自动删除当前 worktree
   |
-  +-- [版本化项目 (有 VERSION 文件)] ------------------> Path C: gstack 完整发布
-  |   ship -> document-release -> land-and-deploy -> 自动删除当前 worktree
-  |
-  +-- [无上游审查证据] --------------------------------> Path C: gstack 完整发布
+  +-- [用户显式要求 release / bump / deploy] ---------> Path C: gstack 完整发布
+      ship -> document-release -> land-and-deploy -> 自动删除当前 worktree
 ```
 
 ### Pre-delivery (auto-detected)
@@ -90,9 +87,10 @@ Position in workflow: Phase 5 (verify) -> **Phase 6** -> Phase 7 (knowledge)
 1. **Detect scene** and announce (中文):
    - "默认路径 -- squash 合并回 main，一个干净的中文 commit。"
    - "用户要求创建 PR -- 使用 PR 路径。"
-   - "版本化项目，有 VERSION 文件 -- 使用完整发布流程含 CHANGELOG。"
+   - "用户明确要求版本发布/自动部署 -- 使用完整发布流程含 CHANGELOG。"
    - "主干落后 8 个提交 -- 先 rebase 同步。"
    - "PR 有 3 个未解决的审查线程 -- 先处理反馈。"
+   - "没有 Phase 5 review 证据 -- 先回 `/dev:verify`。"
 
 2. **Pre-delivery** (if detected):
    - Run `pr-comment-resolver` for pending PR comments
@@ -144,7 +142,7 @@ Position in workflow: Phase 5 (verify) -> **Phase 6** -> Phase 7 (knowledge)
    - 可选 body：补充上下文，仅在变更需要叙事时添加
    - 不加 AI 署名 footer，除非用户要求
 
-   **Path B: PR 路径（用户显式要求时）**
+   **Path B: PR 路径（仅在用户显式要求时）**
    ```
    git-commit-push-pr
      - Delegates to `ce-pr-description` for PR title/body generation
@@ -157,7 +155,7 @@ Position in workflow: Phase 5 (verify) -> **Phase 6** -> Phase 7 (knowledge)
      - Merge 确认后自动删除当前任务 worktree + 本地 feature branch
    ```
 
-   **Path C: gstack 完整发布路径（版本化项目）**
+   **Path C: gstack 完整发布路径（仅在用户显式要求 release / bump / deploy 时）**
    ```
    gstack-ship
      - Merge base branch -> parallel tests -> coverage audit (60%/80%)

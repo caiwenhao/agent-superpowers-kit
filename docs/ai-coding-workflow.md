@@ -555,13 +555,11 @@ todo-resolve (批量处理残余)
   +-- [默认] -----------------------------------------> Path A: Squash 合并
   |   squash merge + 中文 commit，保持主干线性干净 -> 自动删除当前 worktree
   |
-  +-- [用户显式要求 PR / 团队协作项目] ----------------> Path B: PR 路径
+  +-- [用户显式要求 PR] ------------------------------> Path B: PR 路径
   |   ce:commit-push-pr -> land-and-deploy -> 自动删除当前 worktree
   |
-  +-- [版本化项目 (有 VERSION 文件)] ------------------> Path C: gstack 完整
-  |   ship -> document-release -> land-and-deploy -> 自动删除当前 worktree
-  |
-  +-- [无上游审查证据 + 版本化] -----------------------> Path C: gstack 完整
+  +-- [用户显式要求 release / bump / deploy] ---------> Path C: gstack 完整
+      ship -> document-release -> land-and-deploy -> 自动删除当前 worktree
 ```
 
 ### 自动检测的前置和叠加操作
@@ -572,6 +570,7 @@ todo-resolve (批量处理残余)
 | PR 有未解决的审查线程 | 先 `resolve-pr-feedback` |
 | Diff 涉及 UI 文件 | 并行 `feature-video` (PR 嵌入录屏) |
 | 无部署配置文件 (greenfield) | 先 `setup-deploy` 配置部署 |
+| 无 Phase 5 review 证据 | STOP，回 `/dev:verify` |
 
 ### Phase 6 确认收敛规则
 
@@ -596,7 +595,7 @@ todo-resolve (批量处理残余)
 
 **为什么默认不创建 PR**：个人项目或小团队场景下，PR 是不必要的仪式。squash 合并保持 main 线性，每个 commit 对应一个完整功能，`git log --oneline` 即是项目演进史。
 
-### Path B: PR 路径（用户显式要求时）
+### Path B: PR 路径（仅在用户显式要求时）
 
 ```
 /ce:ce:commit-push-pr (ce-pr-description 生成描述 -> 自适应 PR)
@@ -604,7 +603,7 @@ todo-resolve (批量处理残余)
   -> 自动删除当前 task worktree + 本地 feature branch
 ```
 
-### Path C: gstack 完整发布路径（版本化项目）
+### Path C: gstack 完整发布路径（仅在用户显式要求 release / bump / deploy 时）
 
 ```
 ship (合并基准分支 -> 测试 -> 覆盖率审计 60%/80% -> 计划完成度审计
