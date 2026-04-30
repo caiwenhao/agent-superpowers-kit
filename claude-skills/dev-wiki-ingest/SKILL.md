@@ -32,7 +32,7 @@ description: "Use when dev-learn writes a new docs/solutions/*.md, after a retro
 | 维度 | 单源 | 批量 |
 |---|---|---|
 | 输入 | 一个文件/URL | 目录/glob,展开成 N 个源 |
-| GATE 频率 | 1 次(整体清单) | **2 次**:首轮规划清单 + 每个批次前(可批准下一批) |
+| GATE 频率 | 1 次(整体清单) | **1 次必需**:首轮规划清单；后续批次默认只报进度,有 blocker/试点模式时才再 GATE |
 | 一次写入页数 | 5-15 | **每个源仍 5-15**,但跨源累积可达数百页 |
 | 进度跟踪 | 不需要 | **需要** —— 必须维护 `wiki/_migration.md` checklist 文件 |
 | 可中断 | N/A | **必须**支持 —— 每处理 K 个源后 GATE,用户可暂停 |
@@ -54,11 +54,16 @@ description: "Use when dev-learn writes a new docs/solutions/*.md, after a retro
      - [ ] ...
      ```
    - GATE:展示 `_migration.md`,询问 `按计划全量迁移 (Recommended) / 只跑前 5 个试点 / 调整顺序 / 只迁某个子目录 / 取消`
+   - 若用户选择 **按计划全量迁移**，即视为对后续批处理的**整体授权**；不要在每批结束后重复询问“继续下一批”
 3. **批处理**:
    - 默认每批 5 个源,每批结束后:
      - 更新 `_migration.md` 的 checkbox
      - 显示"已完成 5/47,触动 wiki 页面 23 个"
-     - GATE:`继续下一批 (Recommended) / 暂停 / 调整批量大小 / 跳过下一个源`
+     - 若当前模式是**全量迁移**且无 blocker / 无大规模冲突 / 无用户新指令: **自动继续下一批**
+     - 仅在以下情况 GATE:`继续下一批 (Recommended) / 暂停 / 调整批量大小 / 跳过下一个源`
+       - 当前模式是"只跑前 5 个试点"
+       - 出现跨源冲突激增、目标页面爆量、或抽取质量明显异常
+       - 用户中途要求暂停 review 或调整批量策略
    - 用户暂停后,下次再调 `dev:wiki-ingest` 传同样目录,会**读 `_migration.md` 续跑**未完成项
 4. **去重处理**:跨源命中同一实体/概念页 → **同一页面累积**,不重复 create;追加段落标注源
 5. **冲突解决**:同一概念在两个源里描述矛盾 → 在 concept 页里**两段并列保留**,前缀标源,由用户事后调和(不静默选一个)
@@ -70,6 +75,7 @@ description: "Use when dev-learn writes a new docs/solutions/*.md, after a retro
 
 - **可恢复**:中途任何时刻都能 ctrl-c 退出,`_migration.md` 是真实进度;再跑续传不重做已完成项
 - **小步快跑**:默认每批 5 个源,不一口气吞所有;允许用户随时暂停 review
+- **授权收敛**:用户一旦选择"按计划全量迁移",后续批次默认自动推进;不要把同一授权拆成每批一次确认
 - **不删源**:迁移过程中绝不动 `docs/`、`design/` 等源目录的原文件;wiki 是**编译产物**,源永远是真理
 - **`_migration.md` 短命**:整批完成后从 wiki 根目录删除(只在 `log.md` 里留摘要);它是临时进度文件,不是 wiki 一等公民
 

@@ -568,13 +568,21 @@ todo-resolve (批量处理残余)
 | Diff 涉及 UI 文件 | 并行 `feature-video` (PR 嵌入录屏) |
 | 无部署配置文件 (greenfield) | 先 `setup-deploy` 配置部署 |
 
+### Phase 6 确认收敛规则
+
+- 用户显式进入 `/dev:ship`，或明确说"提交/commit/push/PR/合并到 main/上线"，就视为**对当前交付路径的整体授权**。
+- 不要把授权拆成 commit / push / merge / deploy 多次重复确认；那会把 Phase 6 退化成人工脚本播放器。
+- 只有以下情况才再次 GATE：路径存在多个有效选择且无法安全自动判定；merge-readiness / deploy 报告出现 blocker 或风险取舍；用户明确要求逐步确认。
+- `dev:flow mode:auto` 进入 Phase 6 时，沿用同一规则：路径唯一且无 blocker 就自动继续；遇到 blocker 再停。
+
 ### Path A: Squash 合并回 main（默认路径）
 
 ```
 主干同步 (git rebase origin/main)
   -> 记录当前 task_worktree / feature_branch / main_worktree
   -> cd main_worktree && git merge --squash <branch>
-  -> GATE: 展示 diff 摘要 + 拟定中文 commit message，用户确认
+  -> 若用户已明确要求合并到 main 且无歧义，直接提交
+  -> 仅在 commit message / 目标路径 / 风险不明确时 GATE: 展示 diff 摘要 + 拟定中文 commit message
   -> git commit -m "简洁中文描述"
   -> git push origin main
   -> 自动删除当前 task worktree + 本地 feature branch
@@ -605,7 +613,7 @@ ship (合并基准分支 -> 测试 -> 覆盖率审计 60%/80% -> 计划完成度
 ### `land-and-deploy` 关键设计
 
 - 自动检测部署平台（Fly.io / Vercel / Render / Netlify / Heroku / GitHub Actions）
-- 合并前就绪报告（最后人工关卡）
+- 合并前就绪报告（默认保留的单一交付关卡；无 blocker 时不再拆成多次确认）
 - 金丝雀验证按 diff 范围分级：docs 跳过、config smoke、backend 控制台、frontend 全量（frontend 优先用 `dev-browser --headless` + Playwright API 脚本验证关键路由 / 表单 / 控制台无 error）
 - 每个失败点提供回滚选项
 
@@ -626,9 +634,9 @@ ship (合并基准分支 -> 测试 -> 覆盖率审计 60%/80% -> 计划完成度
 5. 若 `task_worktree` 等于 `main_worktree`，或路径不在 `<repo>/.worktrees/` 下，STOP 并报告；禁止删除主 checkout。
 6. 删除前运行 `git -C "$task_worktree" status --porcelain`;若过程文件归档产生未提交改动，暂停并报告，不使用 `--force` 删除。
 
-### 过程文件归档(Phase 6 收尾可选步骤)
+### 过程文件收尾(默认不阻塞)
 
-`land-and-deploy` 完成后、自动删除当前 worktree 前,dev-ship 扫描本任务相关的**过程文件**并 GATE 询问归宿:
+`land-and-deploy` 完成后、自动删除当前 worktree 前，`dev-ship` 扫描本任务相关的**过程文件**并在状态报告中列出候选。默认不发起额外确认；只有用户明确要求处理过程文件时，才进入归档 / wiki-ingest / 保留分支:
 
 | 目录 | 性质 | 默认动作 |
 |---|---|---|
