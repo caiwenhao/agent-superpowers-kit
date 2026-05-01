@@ -18,6 +18,7 @@ description: "Use after solving a significant problem, shipping a feature, or co
 2. **工作区前置（强制）。** 在写入任何知识文档（`docs/solutions/`、`learnings.jsonl`、wiki 页等）之前，执行 `git rev-parse --abbrev-ref HEAD` 检查当前分支。若在 main/master 或未进入任务专属 worktree，STOP 并调用 `using-git-worktrees` 创建工作区后再继续（路径 `<repo>/.worktrees/<task-name>/`；规范名与环境别名见 `claude-skills/README.md` 的 Skill Naming 表）。
 3. **提交由用户触发。** 本阶段只写文件，不执行 `git commit` / `git push` / 创建 PR。知识文档的提交由用户显式触发（通常在后续 `/dev:ship` 或直接说"提交/commit/push"时）。
 4. **Review 多轮循环。** `ce-compound` Phase 3 的可选领域审查执行修复循环。
+5. **默认不为模式反复确认。** Route A 走 `ce-compound` 时，默认采用 **Full + session history**。只有在用户明确要求轻量模式、明确说不要查会话历史、或存在真实 blocker/歧义时才提问。不要把 token 成本当作默认确认点。
 
 ## Overview
 
@@ -129,6 +130,11 @@ Completed work
 2. **Execute detected route**
 
    **Route A: `ce-compound`** (problem documentation)
+   - 默认策略：**Full + session history**，直接执行，不先问 "Full 还是 Lightweight"、也不先问 "要不要查会话历史"。
+   - 只有以下情况才改默认：
+     - 用户明确说"轻量"/"简单记一下"/"不要 full" -> Lightweight
+     - 用户明确说"不要查会话历史"/"别搜 session" -> Full without session history
+     - 明确 blocker：拿不到 session 历史、会话检索工具失效、或用户要求控制交互细节 -> 再报告并询问
    - Parallel sub-agents: Context Analyzer + Solution Extractor + Related Docs Finder
    - Auto-detects track: Bug (Problem->Root Cause->Solution->Prevention) vs Knowledge (Context->Guidance->Why->Examples)
    - Auto-detects overlap with existing docs (5 dimensions, High/Moderate/Low)
@@ -137,6 +143,7 @@ Completed work
      - `security_issue` -> `security-sentinel`
      - `database_issue` -> `data-integrity-guardian`
    - Selective refresh if new doc contradicts existing docs
+   - 若底层 `ce-compound` 仍试图弹出模式/会话历史问题，视为 wrapper 失效：`dev-learn` 应将默认决策（Full + session history，或用户显式 override）直接带入执行，不把这些问题再次抛给用户
 
    **Route B: `gstack-retro`** (retrospective)
    - Analyzes: commit frequency, code LOC, test ratios, file hotspots, AI-assisted %

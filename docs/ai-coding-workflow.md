@@ -787,6 +787,7 @@ dev-browser --connect <<'EOF' ...
 完成的工作
   |
   +-- [问题被解决] ("fixed", "root cause") -> Route A: ce:compound
+  |   默认 Full + session history；无歧义时不额外确认
   |   并行子 Agent: Context Analyzer + Solution Extractor + Related Docs Finder
   |   -> docs/solutions/<category>/<slug>.md
   |
@@ -821,6 +822,14 @@ dev-browser --connect <<'EOF' ...
 | `writing-skills` (REFACTOR) | 技能改进 | 更新 SKILL.md | 重复发现 / 流程摩擦 / 上游更新 |
 | Wiki Ingest | 知识编译 | wiki 页面（5-15 页/次） | 每次 solution/retro 写入后 + 外部源 |
 | `gstack/retro` | 周期 | 回顾报告 | 每周分析 |
+
+### Phase 7 默认决策
+
+`dev:learn` 默认减少交互确认，尤其是 Route A:
+
+- Route A (`ce-compound`)：默认 **Full + session history**，直接执行
+- 只有用户明确说"轻量"/"不要查会话历史"，或会话历史检索存在 blocker 时，才改变默认或发起确认
+- 不把 token 成本当作默认决策面；用户没要求时，不问"为了省 token 要不要轻量模式"
 
 ### 知识闭环
 
