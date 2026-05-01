@@ -1,6 +1,6 @@
 ---
 name: dev-supervise
-description: "Use to review skill execution quality across sessions. Scans session transcripts for correction signals (rollbacks, interruptions, redos, iron law violations), aggregates by skill, and produces a ranked improvement report. Not part of dev-flow orchestration."
+description: "Use to review skill execution quality when there are user corrections, repeated rework, iron law incidents, skill/process changes, or pre-ship evidence needs."
 ---
 
 <SUPERVISE-CHECK>
@@ -16,13 +16,15 @@ description: "Use to review skill execution quality across sessions. Scans sessi
 
 `dev-supervise` 是 `dev:*` skill 库的元 skill：扫描历史 session，收集纠正信号，产出按 skill 排行的改进建议报告。
 
-它**不进入** `dev-flow` 自动编排。入口仅有本命令（L3）和 `dev-learn` 中的 `skill-self-review` 子步（L2）。
+它不是常规业务 phase，但可以被 `dev-flow` 的 Phase 5.5 交付前自省判断按需调用。其他入口为本命令（L3）和 `dev-learn` 中的 `skill-self-review` 子步（L2）。
 
 ## When to Use
 
 - 想了解哪些 skill 被用户纠正最多
 - 定期复盘 skill 质量趋势
 - 收集改进证据，为 SKILL.md 修改提供数据支撑
+- Phase 5 已通过、准备 `dev:ship`，但本次 diff 修改了 skill / workflow / supervise 相关文件
+- Phase 5 已通过、准备 `dev:ship`，且本 session 出现用户打断、回滚、重复返工或 L1 iron law 事件
 
 ## Parameters
 
@@ -67,7 +69,7 @@ description: "Use to review skill execution quality across sessions. Scans sessi
 
 ## Self Boundary
 
-- 不进入 `dev-flow` 自动编排
+- 不作为 `dev-flow` 的常规串行 phase；只允许 Phase 5.5 在有自省信号时按需触发
 - 不自动 patch SKILL.md
 - 不读取 session 原文内容（仅引用路径+行号）
 - global scope 输出到家目录，避免跨 repo 数据泄漏

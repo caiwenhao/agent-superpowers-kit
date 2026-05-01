@@ -7,8 +7,8 @@
 | 层 | 机制 | 触发 |
 |---|---|---|
 | L1 实时拦截 | `scripts/supervise/iron_law_guard.py` hook | 每次工具调用 |
-| L2 会话复盘 | `scripts/supervise/extract_signals.py` | Phase 7 (dev-learn) |
-| L3 历史扫描 | `/dev:supervise` 命令 | 用户手动触发 |
+| L2 会话复盘 | `scripts/supervise/extract_signals.py` | Phase 5.5 pre-ship 或 Phase 7 (dev-learn) |
+| L3 历史扫描 | `/dev:supervise` 命令 | 用户手动触发，或 `dev:flow` Phase 5.5 有自省信号时按需触发 |
 
 ## L1 Hook 注册
 

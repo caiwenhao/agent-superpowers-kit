@@ -12,6 +12,7 @@ This directory is the **canonical source** for the 8-phase `dev:*` development w
 | 规划 | `dev-plan` | `ce-plan` + `plan-eng-review` (+ `autoplan` / `plan-design-review`) |
 | 实现 | `dev-code` | `ce-work` (+ `test-driven-development` / `systematic-debugging` / `frontend-design` / `dev-browser`) → 收尾 `/simplify`（Phase 4→5 过渡关）|
 | 验证 | `dev-verify` | `ce-review` (+ `test-browser` / `dev-browser` / `qa` / `design-review` / `cso` / `benchmark`) |
+| 预交付判断 | `dev-flow` 内置 Phase 5.5 | 按需触发 `dev-learn` / `dev-supervise`，让知识和自省证据在 `dev-ship` 前进入同一交付 diff |
 | 交付 | `dev-ship` | `git-commit-push-pr` or `ship`, then `land-and-deploy` (+ `dev-browser` canary 烟测) |
 | 沉淀 | `dev-learn` | `ce-compound` / `retro` / `ce-compound-refresh` / `writing-skills` |
 | 初始化 | `dev-init` | 写 CLAUDE.md preamble + 建 AGENTS.md 软链 + 迁移仓库级技能目录到 cross-harness 双软链布局,收尾调 dev:doctor |

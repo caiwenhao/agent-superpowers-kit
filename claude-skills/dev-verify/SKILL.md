@@ -23,7 +23,7 @@ description: "Use after implementation to run multi-layer quality verification. 
 
 Phase 5 is the quality gate for the whole current artifact. `ce-review` **detects** diff content and **auto-selects** 6-20+ persona reviewers. Additional verification layers are **auto-stacked** based on what changed. Phase 4 should already have run `mode:autofix`; Phase 5 reviews the complete result and handles residual or judgment-requiring findings.
 
-Position in workflow: Phase 4 (code) -> **Phase 5** -> Phase 6 (delivery)
+Position in workflow: Phase 4 (code) -> **Phase 5** -> Phase 5.5 (pre-ship knowledge/supervision decision) -> Phase 6 (delivery)
 
 ## When to Use
 
@@ -108,7 +108,7 @@ In Codex, reviewer-role fanout should use multiple reviewer agents when subagent
 
 5. **Run `todo-resolve`** to batch-process remaining todos
 
-6. **Next**: `/dev:ship` (Phase 6)
+6. **Next**: `/dev:flow` Phase 5.5 pre-ship knowledge/supervision decision, then `/dev:ship` (Phase 6)
 
 ## Inputs / Outputs
 
@@ -116,7 +116,7 @@ In Codex, reviewer-role fanout should use multiple reviewer agents when subagent
 |---|---|
 | **Input** | Code diff, plan file path (for R-ID verification) |
 | **Output** | PASS verdict, safe_auto fixes applied, todos resolved |
-| **Next** | `/dev:ship` (Phase 6) |
+| **Next** | `/dev:flow` Phase 5.5, then `/dev:ship` (Phase 6) |
 
 ## Iron Laws
 

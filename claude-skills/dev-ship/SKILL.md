@@ -26,11 +26,11 @@ description: "Use when Phase 5 has passed and code is ready to deliver. Detects 
 
 Phase 6 delivers verified code to production. It **detects** project type and upstream quality context to **auto-select** the right delivery path. Two paths share a single endpoint (`land-and-deploy`) and then automatically remove the current task worktree after merge.
 
-Position in workflow: Phase 5 (verify) -> **Phase 6** -> Phase 7 (knowledge)
+Position in workflow: Phase 5.5 (pre-ship knowledge/supervision decision) -> **Phase 6** -> Phase 7 (post-ship knowledge closeout)
 
 ## When to Use
 
-- Phase 5 verification passed
+- Phase 5 verification passed and Phase 5.5 pre-ship knowledge/supervision decision has no remaining required action
 - Code is ready to ship
 
 **Never skip Phase 6.**
@@ -63,7 +63,7 @@ Position in workflow: Phase 5 (verify) -> **Phase 6** -> Phase 7 (knowledge)
 ## Routing
 
 ```
-验证通过的代码 (from Phase 5)
+验证通过且完成 Phase 5.5 交付前判断的代码
   |
   +-- [默认] -----------------------------------------> Path A: Squash 合并回 main
   |   squash merge + 中文 commit message，保持主干干净 -> 自动删除当前 worktree

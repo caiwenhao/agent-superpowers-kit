@@ -1,6 +1,6 @@
 ---
 name: dev-learn
-description: "Use after solving a significant problem, shipping a feature, or completing a sprint. Detects the trigger type and routes to the right knowledge capture skill: ce-compound for problems, retro for sprints, writing-skills for reusable methods."
+description: "Use after solving a significant problem, before shipping nontrivial work whose knowledge artifacts should be delivered with the code, after shipping a feature, or after completing a sprint."
 ---
 
 <SUPERVISE-CHECK>
@@ -24,11 +24,12 @@ description: "Use after solving a significant problem, shipping a feature, or co
 
 Phase 7 is the compound interest phase. It **detects** what just happened and **routes** to the right knowledge capture mechanism. Knowledge captured here is **automatically injected** into future Phase 3 planning and Phase 5 review via learnings-researcher.
 
-Position in workflow: Phase 6 (ship) -> **Phase 7** -> Phase 1 (next work item, closes the loop)
+Position in workflow: Phase 5.5 pre-ship capture when knowledge artifacts should ship with the diff; otherwise Phase 6 (ship) -> **Phase 7** post-ship closeout -> Phase 1 (next work item).
 
 ## When to Use
 
 - Just solved a hard bug or complex problem
+- Phase 5 passed and the work produced knowledge artifacts that should be included before `dev:ship`
 - Shipped a feature and want to document decisions
 - End of sprint / weekly review
 - Discovered a reusable cross-project pattern
@@ -44,7 +45,8 @@ Analyze the conversation history and recent git activity to classify the trigger
 - Recent commits include `fix:` prefix
 - -> Route A: Document the problem
 
-**Signal 2: Was a feature just shipped?**
+**Signal 2: Is a feature ready to ship, or was it just shipped?**
+- Phase 5 passed and the feature introduced non-trivial decisions that should be documented in the delivery diff
 - Phase 6 just completed (PR merged, deploy verified)
 - Recent commits include `feat:` prefix
 - -> Route A (if non-trivial decisions were made) or skip (if straightforward)
@@ -77,7 +79,7 @@ Analyze the conversation history and recent git activity to classify the trigger
 ## Routing
 
 ```
-Completed work
+Verified or completed work
   |
   +-- [Problem solved] -----------> Route A: ce-compound
   |   "fixed", "root cause",        -> docs/solutions/<category>/<slug>.md

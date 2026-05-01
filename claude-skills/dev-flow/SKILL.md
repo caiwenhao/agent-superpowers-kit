@@ -32,7 +32,8 @@ dev:flow
   |
   +-- Enter at the right phase
   |
-  +-- Drive: discover -> design -> plan -> code -> verify -> ship -> learn
+  +-- Drive: discover -> design -> plan -> code -> verify
+      -> pre-ship learn/supervise decision -> ship -> post-ship learn
   |                                                                   |
   +-- <------------------------------- next work item ----------------+
 ```
@@ -100,7 +101,7 @@ gh pr view --json state,title 2>&1
 | Finding | Enter At |
 |---|---|
 | Plan with `status: active`, unchecked Implementation Units | Phase 4 (code) -- resume execution |
-| Uncommitted code changes + recent ce-review run | Phase 6 (ship) -- ready to deliver |
+| Uncommitted code changes + recent ce-review run | Phase 5.5 (pre-ship knowledge/supervision) -- decide whether to run `dev-learn` / `dev-supervise`, then Phase 6 |
 | Uncommitted code changes, no review evidence | Phase 5 (verify) -- needs review |
 | Open PR with unresolved review threads | Phase 6 (ship) -- resolve feedback, then ship |
 | Plan with `status: active`, all units checked, no code changes | Phase 5 (verify) -- confirm completion |
@@ -124,7 +125,7 @@ gh pr view --json state,title 2>&1
 | Clear feature with spec: "Add OAuth per this doc" | Phase 3 (plan) -- requirements exist informally |
 | File path to requirements doc | Phase 2 or 3 -- check if UI involved |
 | File path to plan doc | Phase 4 (code) -- plan exists, execute it |
-| "ship it" / "deploy" / "create PR" | Phase 6 (ship) -- go straight to delivery |
+| "ship it" / "deploy" / "create PR" | Phase 5.5 (pre-ship knowledge/supervision) -- then Phase 6 delivery |
 | "what did we learn" / "retro" | Phase 7 (learn) -- knowledge capture |
 | Dependency upgrade: "upgrade X", "update deps" | Phase 3 (plan) -- 需要计划升级步骤和回滚策略 |
 | Docs-only: "update README", "fix docs" | Phase 4 (code) -- bare prompt inline, skip Phase 1-3 |
@@ -152,7 +153,7 @@ ls .context/compound-engineering/ce-review/ 2>/dev/null
 | Requirements doc exists, no DESIGN.md, work has UI | Phase 2 (design) |
 | Requirements doc exists, no plan | Phase 3 (plan) |
 | Requirements + plan exist, plan not started | Phase 4 (code) |
-| Code changes + review done | Phase 6 (ship) |
+| Code changes + review done | Phase 5.5 (pre-ship knowledge/supervision) -> Phase 6 |
 | Everything shipped | Phase 7 (learn) |
 
 ## Orchestration Loop
@@ -198,6 +199,12 @@ Once the entry phase is determined, `dev:flow` drives through the pipeline:
       |  GATE: PASS verdict
       |
       v
+  Phase 5.5: Pre-Ship Knowledge/Supervision Decision
+      |  Decide whether `dev-learn` or `dev-supervise`
+      |  must run before delivery artifacts are committed
+      |  GATE: no required pre-ship capture remains
+      |
+      v
   Phase 6: /dev:ship
       |  Auto-select Path A or B
       |  land-and-deploy with canary
@@ -205,7 +212,7 @@ Once the entry phase is determined, `dev:flow` drives through the pipeline:
       |
       v
   Phase 7: /dev:learn
-      |  Auto-detect trigger type
+      |  Post-ship closeout only when still useful
       |  compound / retro / writing-skills
       |
       v
@@ -249,7 +256,7 @@ Step 4: 回归验证（= Phase 5 子集）
     - 涉及 UI 时 dev-browser 验证修复效果
     |
     v
-GATE: 报告修复结果，用户决定是否进入 Phase 6 交付
+GATE: 报告修复结果，先进入 Phase 5.5 判断是否需要沉淀/自省，再决定是否进入 Phase 6 交付
 ```
 
 ### Bug Fix 路由细节
@@ -265,7 +272,7 @@ GATE: 报告修复结果，用户决定是否进入 Phase 6 交付
 
 - Bug Fix 路径**不产出需求文档**（Phase 1 产物），bug 本身就是需求："恢复预期行为"。
 - Bug Fix 路径**不产出设计文档**（Phase 2 产物），除非修复涉及 UI 变更且需要新的交互模式。
-- 修复完成后汇入标准 Phase 6（交付），遵守铁律 #7（提交由用户触发）。
+- 修复完成后先汇入 Phase 5.5（交付前沉淀/自省判断），再进入标准 Phase 6（交付），遵守铁律 #7（提交由用户触发）。
 - 如果根因分析发现问题不是 bug 而是缺失功能，**退出 Bug Fix 路径，回到标准 Phase 1**。
 
 ### Bug Fix 铁律
@@ -340,6 +347,47 @@ main 上新增: db/migrate/20260420_add_index.rb, config/routes.rb
 
 用户选"跳过"时记录，Phase 6 前**强制**再检查一次。
 
+## Phase 5.5: Pre-Ship Knowledge/Supervision Decision
+
+在进入 Phase 6 (`dev:ship`) 前，`dev:flow` 必须先判断本次交付是否需要把知识沉淀或 skill 自省产物纳入同一个交付 diff。目标是避免"先 ship，再发现 `docs/solutions/`、`docs/supervise/` 或 `SKILL.md` 相关证据还没随代码交付"。
+
+### 判定顺序
+
+```
+Phase 5 PASS / Bug Fix Step 4 PASS
+  |
+  v
+检查 pre-ship 信号
+  |
+  +-- 需要 skill 自省? ---- yes -> dev-supervise (project scope)
+  |
+  +-- 需要知识沉淀? ------ yes -> dev-learn (匹配 Route A-F)
+  |
+  +-- 产出新文件? -------- yes -> 回到 Phase 5 做针对性验证
+  |
+  v
+进入 Phase 6 (`dev:ship`)
+```
+
+### 智能信号
+
+| 信号 | 动作 |
+|---|---|
+| 解决了非平凡 bug、定位了根因、形成了新的架构/运维/调试模式 | 先运行 `dev-learn`，通常走 Route A (`ce-compound`) |
+| 用户明确说"记下来"、"沉淀"、"写成 skill"、"这个以后也要这么做" | 先运行 `dev-learn`，按 Route A/C/E/F 分流 |
+| 本次 diff 修改 `claude-skills/`、`.agents/skills/`、`docs/ai-coding-workflow.md`、`scripts/supervise/` 或 `docs/supervise/` | 先运行 `dev-supervise --scope project --since 7d`；若还暴露 skill gap，再运行 `dev-learn` Route E |
+| 本 session 出现用户打断、回滚、重复返工、L1 iron law 事件，或同一问题在 review 中反复出现 | 先运行 `dev-supervise` 收集证据，再判断是否需要 `dev-learn` Route E |
+| 只是微小 typo、机械格式、无新决策的依赖锁文件变化，且无纠正信号 | 跳过 `dev-learn` 和 `dev-supervise`，直接进入 Phase 6 |
+
+当两个动作都需要时，顺序固定为：**先 `dev-supervise`，后 `dev-learn`**。原因是自省报告可能成为 `dev-learn` Route E 的输入；反过来会漏掉本次流程摩擦。
+
+### GATE 行为
+
+- `mode:manual`：报告判定结果，例如"交付前检测到 skill 文档变更，建议先跑 `dev-supervise`；检测到可复用模式，建议先跑 `dev-learn`。" 等用户确认。
+- `mode:auto`：若信号唯一明确，自动运行对应步骤；若信号为"无新知识/无自省必要"，自动跳过；若是否要沉淀存在产品/团队取舍，STOP 等用户决定。
+- 任一步骤写入新文件后，必须至少执行针对性验证（例如 `git status --short`、相关 markdown grep/链接检查、必要时 `/dev:verify` 的 docs-only 审查）再进入 Phase 6。
+- `dev-supervise` 只产出报告，不自动 patch `SKILL.md`；如报告要求修改技能，回到 Phase 4/5 完成修改和验证后再重新进入 Phase 5.5。
+
 ### Phase 6 前强制同步
 
 进入 Phase 6 (`dev:ship`) 前，主干同步是**强制前置步骤**（不可跳过）：
@@ -393,7 +441,7 @@ Not every work item needs all 7 phases. `dev:flow` auto-detects skippable phases
 | Requirements already exist and approved | Phase 1 |
 | DESIGN.md exists and no new UI patterns needed | Phase 2 |
 | Plan already exists and reviewed | Phase 3 |
-| Nothing novel learned | Phase 7 |
+| Nothing novel learned and no self-review signal | Phase 5.5 pre-ship `dev-learn` / `dev-supervise`; Phase 7 post-ship learn |
 | Docs-only change (README, CONTRIBUTING, etc.) | Phase 1, 2, 3 -- Phase 4 inline + Phase 5 (devex-review auto-stacked) |
 | Dependency upgrade | Phase 2 -- 走 Phase 1(轻量需求)->3(升级计划)->4->5->6 |
 
@@ -455,8 +503,15 @@ Phase 5 (/dev:verify):
   -> 第 1 轮: 发现 1 个 P1 (邮件注入风险) + 1 个 P2
   -> 修复 -> 第 2 轮: 零 P0/P1 -> 通过
   -> test-browser: 通知设置页面测试通过
-  GATE (`mode:manual`): "验证通过。进入 Phase 6?"
-  GATE (`mode:auto`): "验证通过。自动进入 Phase 6。"
+  GATE (`mode:manual`): "验证通过。进入交付前沉淀/自省判断?"
+  GATE (`mode:auto`): "验证通过。自动进入交付前沉淀/自省判断。"
+
+Phase 5.5 (Pre-Ship Knowledge/Supervision Decision):
+  -> 检测: 新增邮件通知服务模式 + 无 skill 执行纠正信号
+  -> 运行 dev-learn Route A，写入 docs/solutions/notifications/email-service.md
+  -> 针对性验证: git status + markdown 链接检查通过
+  GATE (`mode:manual`): "交付前沉淀已完成。进入 Phase 6?"
+  GATE (`mode:auto`): "交付前沉淀已完成。自动进入 Phase 6。"
 
 Phase 6 (/dev:ship):
   场景: 无版本文件 -> Path A (squash 合并回 main)
@@ -469,8 +524,7 @@ Phase 6 (/dev:ship):
   GATE (`mode:auto`): "已合并到 main。自动进入 Phase 7。"
 
 Phase 7 (/dev:learn):
-  场景: 功能已发布，邮件服务模式是新的 -> Route A
-  -> ce-compound 记录邮件通知模式
+  场景: 交付前已完成知识沉淀，部署无新增经验 -> skip
   -> "知识已沉淀。准备进入下一个工作项。"
 ```
 
@@ -506,8 +560,14 @@ Step 3 (修复实现):
 Step 4 (回归验证):
   -> 回归测试通过 ✅
   -> 全量测试套件 142/142 通过 ✅
-  GATE (`mode:manual`): "修复已验证。进入 Phase 6 交付?"
-  GATE (`mode:auto`): "修复已验证。自动进入 Phase 6 交付。"
+  GATE (`mode:manual`): "修复已验证。进入交付前沉淀/自省判断?"
+  GATE (`mode:auto`): "修复已验证。自动进入交付前沉淀/自省判断。"
+
+Phase 5.5:
+  -> 检测: 根因明确且有回归测试；无 skill/process 变更
+  -> 运行 dev-learn Route A，记录"profile 为空导致登录 500"的排查与预防
+  -> 验证 docs/solutions 新文档可检索
+  -> 进入 Phase 6
 
 Phase 6 (/dev:ship):
   -> 用户确认 -> git commit -m "修复新注册用户登录 500: 处理 profile 为 null 的情况"
