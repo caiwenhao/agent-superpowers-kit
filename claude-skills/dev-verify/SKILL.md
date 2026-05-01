@@ -98,7 +98,9 @@ In Codex, reviewer-role fanout should use multiple reviewer agents when subagent
    - Residual issues -> todo system
    - **循环**: 审查 -> 修复 -> 再审查，直到零 P0/P1 或 3 轮上限或收敛
 
-   **GATE: PASS 裁决（零 P0/P1）。**
+   **CHECKPOINT:** PASS 裁决（零 P0/P1）。
+   - PASS 时直接进入 Phase 5.5 交付前沉淀/自省判断；不要问"是否继续"。
+   - 只有仍有 P0/P1、需要用户接受风险、或附加审查层出现 blocker 时才发起 Decision GATE / STOP。
 
 3. **If 未通过**: 修复发现（先验证再采纳），循环直到通过
 
@@ -108,7 +110,7 @@ In Codex, reviewer-role fanout should use multiple reviewer agents when subagent
 
 5. **Run `todo-resolve`** to batch-process remaining todos
 
-6. **Next**: `/dev:flow` Phase 5.5 pre-ship knowledge/supervision decision, then `/dev:ship` (Phase 6)
+6. **Next**: `/dev:flow` Phase 5.5 pre-ship knowledge/supervision decision, then `/dev:ship` (Phase 6). 默认自动进入 Phase 5.5；Phase 6 仍需 ship 授权。
 
 ## Inputs / Outputs
 
@@ -116,7 +118,7 @@ In Codex, reviewer-role fanout should use multiple reviewer agents when subagent
 |---|---|
 | **Input** | Code diff, plan file path (for R-ID verification) |
 | **Output** | PASS verdict, safe_auto fixes applied, todos resolved |
-| **Next** | `/dev:flow` Phase 5.5, then `/dev:ship` (Phase 6) |
+| **Next** | `/dev:flow` Phase 5.5, then `/dev:ship` (Phase 6); auto-continue to Phase 5.5 when PASS |
 
 ## Iron Laws
 

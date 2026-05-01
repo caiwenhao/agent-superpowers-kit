@@ -94,9 +94,11 @@ Position in workflow: Phase 3 (planning) -> **Phase 4** -> Phase 5 (verification
    - `/simplify` 之后必须再运行一次 `ce-review mode:autofix plan:<path>`；这才是 Phase 4 的最终 autofix pass
    - **跳过条件**: diff < 10 行 trivial 改动 / 仅文档变更 / 中途某 Unit 已单独跑过且后续无重大新增
 
-   **GATE: 所有任务完成。测试通过。`/simplify` 已扫过。final autofix 已覆盖 `/simplify` 后 diff，`safe_auto` 已应用。残余 `gated_auto/manual` todo 已记录并交给 Phase 5。**
+   **CHECKPOINT:** 所有任务完成。测试通过。`/simplify` 已扫过。final autofix 已覆盖 `/simplify` 后 diff，`safe_auto` 已应用。残余 `gated_auto/manual` todo 已记录并交给 Phase 5。
+   - 条件满足时直接进入 `/dev:verify`；不要问"是否继续 Phase 5"。
+   - 若测试失败、任务未完成、或残余问题需要用户取舍，才发起 Decision GATE / STOP。
 
-5. **Next**: `/dev:verify` (Phase 5)
+5. **Next**: `/dev:verify` (Phase 5). 默认自动进入；只有 blocker / 用户取舍 / 用户明确要求逐步确认时才停下。
 
 ## Inputs / Outputs
 
@@ -104,7 +106,7 @@ Position in workflow: Phase 3 (planning) -> **Phase 4** -> Phase 5 (verification
 |---|---|
 | **Input** | Plan file path from Phase 3 (or bare prompt for small work) |
 | **Output** | 已修改的代码 + 通过的测试 + Phase 4 多次 `ce-review mode:autofix` 的 `safe_auto` 已应用 + `/simplify` 已扫过（**未 commit**，工作树留有变更） |
-| **Next** | `/dev:verify` (Phase 5) |
+| **Next** | `/dev:verify` (Phase 5), auto-continue when implementation checkpoint is clear |
 
 ## Iron Laws
 

@@ -10,7 +10,7 @@
 │                                                                      │
 │  ┌──────────────────────────────────────────────────────────────┐    │
 │  │              dev:flow -- 智能编排器（单一入口）                  │    │
-│  │  自动检测当前阶段，驱动流水线前进；默认 GATE 暂停，可显式 auto     │    │
+│  │  自动检测当前阶段并推进；只在重大疑问/冲突/风险取舍时 GATE        │    │
 │  └──────────────────────────────────────────────────────────────┘    │
 │      |                                                               │
 │  ┌──────┐  ┌──────┐  ┌──────┐  ┌──────┐  ┌──────┐  ┌──────┐       │
@@ -41,7 +41,7 @@
 
 ## dev:flow -- 智能编排器
 
-> **用户不需要手动选择技能组合。** `dev:flow` 是唯一入口，自动检测当前状态并路由到正确阶段。默认 `mode:manual` 在重要 GATE 停下；显式 `mode:auto` 可自动推进。
+> **用户不需要手动选择技能组合。** `dev:flow` 是唯一入口，自动检测当前状态并路由到正确阶段。默认 guided auto-advance：阶段通过且下一步唯一明确时自动继续；只有重大疑问、冲突、风险取舍、破坏性动作或用户明确要求逐步确认时才 GATE。
 
 ### 场景检测（按优先级）
 
@@ -55,16 +55,23 @@
 
 ### GATE 机制
 
-默认 `mode:manual` 下，每个阶段结束时，`dev:flow` **暂停并报告状态**，用户可以：
-- **继续** -- 进入下一阶段
-- **跳过** -- 跳过当前阶段（如后端无需设计）
-- **暂停** -- 保存进度，稍后用 `/dev:flow` 恢复
-- **回退** -- 回到更早的阶段修改
+`dev:flow` 区分 status checkpoint 和 decision GATE：
 
-显式 `mode:auto` 下：
+| 出口 | 是否问用户 | 用法 |
+|---|---|---|
+| Status checkpoint | 不问；报告证据后继续 | 当前 phase 已通过，下一步唯一明确 |
+| Decision GATE | 问；必须有明确选项 | 存在阻塞、重大疑问、风险取舍、破坏性动作、多个合理路线、或用户明确要求逐步确认 |
+
+确认必须有决策价值。如果推荐项永远是"继续下一阶段"，那就不是 GATE。编号选项只用于用户必须做选择的情况。
+
+默认 guided 行为：
 - 当前阶段通过且下一步唯一明确 -> 自动继续
 - 提醒级信息（如主干偏离 6-15 commits）-> 打印后继续
 - 遇到 hard blocker（未满足工作区前置、测试失败、强制 review gate 未清零 P0/P1、merge conflict、deploy 失败、缺少关键工具等）-> 立即 STOP，转回人工处理
+- 进入 Phase 6 但没有显式 ship 授权 -> STOP，请求交付授权
+
+`mode:manual` 只有用户明确要求"每步确认/逐步确认"时启用。
+`mode:auto` 表示用户授权自动推进非阻塞步骤，并授权在无 blocker 时进入 `/dev:ship`。
 
 ### 主干同步（Trunk Sync）
 
@@ -73,7 +80,7 @@
 | 偏离度 | 表现 | 动作 |
 |---|---|---|
 | 0-5 commits | ✅ 显示偏离数 | 无 |
-| 6-15 commits | ⚠️ 黄色提醒 | `mode:manual` 下建议当前同步；`mode:auto` 下打印提醒后继续 |
+| 6-15 commits | ⚠️ 黄色提醒 | 打印提醒后继续；只有用户要求逐步确认时才停下 |
 | 16+ commits | 🔴 红色警告 | STOP，要求先同步主干，再继续流程 |
 
 Phase 4 长实现阶段：每 3 个 Implementation Unit 完成后额外检查一次。
@@ -571,8 +578,8 @@ todo-resolve (批量处理残余)
 
 ### 验证与回流
 
-- `mode:manual`：展示判定结果，等待用户确认执行或跳过。
-- `mode:auto`：信号唯一明确时自动执行；信号明确为无必要时自动跳过；存在取舍时 STOP。
+- guided / `mode:auto`：信号唯一明确时自动执行；信号明确为无必要时自动跳过；存在取舍时 STOP。
+- `mode:manual`：用户明确要求逐步确认时，展示判定结果并等待。
 - 任一子步骤产生文件后，至少运行针对性验证（`git status --short`、链接/grep 检查、必要时 docs-only `/dev:verify`），再进入 Phase 6。
 - 如果 `dev-supervise` 报告要求修改 `SKILL.md`，回到 Phase 4/5 完成修改和验证；不得带着未处理的 P0/P1 流程问题进入 Phase 6。
 
@@ -1062,15 +1069,17 @@ dev:flow
   |
   自动检测 -> 进入正确阶段 -> 驱动到完成
   |
-  dev:discover -> GATE -> dev:design -> GATE -> dev:plan -> GATE
-      -> dev:code -> GATE -> dev:verify -> GATE
+  dev:discover -> status/decision gate -> dev:design -> status/decision gate
+      -> dev:plan -> status/decision gate -> dev:code -> status/decision gate
+      -> dev:verify -> status/decision gate
       -> pre-ship dev-learn/dev-supervise 判断 -> dev:ship -> GATE
       -> post-ship dev:learn -> 闭环
 ```
 
 - **智能路由**: 每个阶段内部自动检测场景，选最优技能组合
-- **默认模式**: `mode:manual`，GATE 暂停等待用户确认
-- **全自动模式**: `mode:auto`，阶段通过且无阻塞时自动继续
+- **默认模式**: guided auto-advance，阶段通过且下一步唯一明确时自动继续
+- **手动模式**: `mode:manual`，只有用户明确要求逐步确认时使用
+- **全自动交付模式**: `mode:auto`，阶段通过且无阻塞时自动继续，并授权后续进入 `/dev:ship`
 - **主干同步**: 每个 GATE 检测与 main 的偏离度，及时提醒 rebase
 - **恢复智能**: 跨会话自动检测中断位置
 - **阶段跳过**: 自动检测哪些阶段可跳过
@@ -1086,7 +1095,7 @@ dev:flow mode:auto
 ```
 
 - 保留 `dev:flow` 的场景检测、阶段跳过、恢复智能
-- 不再在每个 phase GATE 等用户逐步确认
+- 不在每个 phase GATE 等用户逐步确认
 - 仍不绕过硬门禁：工作区前置、测试失败、强制 review gate、merge/deploy 失败等
 
 ### `lfg` -- 全自动编排
@@ -1105,7 +1114,8 @@ ce:plan -> GATE -> ce:work -> GATE -> ce:code-review(autofix) -> todo-resolve ->
 | 不确定从哪开始 | `dev:flow` |
 | 从零开始新功能 | `dev:flow` |
 | 跨会话恢复工作 | `dev:flow` |
-| 想让 `dev:flow` 自动跨过阶段确认一路推进 | `dev:flow mode:auto` |
+| 想减少普通阶段确认、只在 blocker/重大取舍时停下 | `dev:flow`（默认） |
+| 想授权一路推进到交付 | `dev:flow mode:auto` |
 | 有明确计划，一键执行 | `lfg` |
 | 已有需求，快速走完 plan->ship | `lfg` |
 

@@ -110,7 +110,9 @@ Plan created by ce-plan
    - 若达到上限或收敛仍有 P0/P1：STOP，报告阻塞；只有用户显式接受风险并把理由写入计划的 Deferred/Open Questions 或 Review Notes 后，才允许继续 Layer 2。
    - If `document-review` 只输出了"review 可作为下一步"、没有真正执行到本计划文件上，视为 Layer 1 未开始，立即重新调用，不得继续。
 
-   **GATE: 计划文件存在且有 `document-review` 通过证据（零未处理 P0/P1 或用户记录化 override）。**
+   **CHECKPOINT:** 计划文件存在且有 `document-review` 通过证据（零未处理 P0/P1 或用户记录化 override）。
+   - 零未处理 P0/P1 时直接进入 Layer 2；不要询问"是否继续审查"。
+   - 只有存在 `gated_auto` / `manual` 取舍、P0/P1 override、或多个合理计划方向时才发起 Decision GATE。
 
 5. **Detect review depth** from plan's Implementation Unit count (Signal 3). Announce (中文):
    - "计划有 12 个单元 -- 运行完整 autoplan 审查流水线。"
@@ -125,9 +127,11 @@ Plan created by ce-plan
    - **循环**: 每个审查技能内部执行多轮修复，直到零未处理 P0/P1、达到上限、或连续两轮发现相同问题。
    - 若 `gstack-*` 在当前环境未安装（`dev-doctor` 会报告），Codex 路径优先保留多 agent 角色审查：至少运行一轮 `document-review` reviewer fanout 覆盖 coherence/feasibility/scope/design/security/product/adversarial，并明确还缺少 eng-review 判断；之后由用户选择手动补 eng-review 或记录 override。不得直接进入 `/dev:code`。
 
-   **GATE: GSTACK REVIEW REPORT 写入计划文件。`plan-eng-review` CLEARED（零未处理 P0/P1 或用户记录化 override）。**
+   **CHECKPOINT:** GSTACK REVIEW REPORT 写入计划文件。`plan-eng-review` CLEARED（零未处理 P0/P1 或用户记录化 override）。
+   - 通过后默认进入 `/dev:code`；不要为"继续 Phase 4"单独确认。
+   - 若仍需用户接受风险、缩小范围、选替代架构，才发起 Decision GATE。
 
-7. **Next**: `/dev:code` (Phase 4)
+7. **Next**: `/dev:code` (Phase 4). 默认自动进入；只有 unresolved plan decision / risk override / 用户明确要求逐步确认时才停下。
 
 ## Inputs / Outputs
 
@@ -135,7 +139,7 @@ Plan created by ce-plan
 |---|---|
 | **Input** | Phase 1 requirements doc path, Phase 2 `DESIGN.md` (if exists) |
 | **Output** | `docs/plans/YYYY-MM-DD-NNN-<type>-<name>-plan.md`（frontmatter 包含 `status: active`）with R-Trace + Impl Units |
-| **Next** | `/dev:code` (Phase 4) |
+| **Next** | `/dev:code` (Phase 4), auto-continue when review gates are clear |
 
 ## Iron Law
 

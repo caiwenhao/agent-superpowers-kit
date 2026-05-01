@@ -92,11 +92,13 @@ Requirements Doc (from Phase 1)
    - **循环**: 审查 -> 修复 -> 再审查，最多 3 轮或连续两轮发现相同则收敛
    - 未解决的问题写入 "Reviewer Concerns" 部分
 
-   **GATE: `DESIGN.md` 通过审查（零 P0/P1）+ `approved.json` 存在 + 用户确认方向。**
+   **CHECKPOINT:** `DESIGN.md` 通过审查（零 P0/P1）+ `approved.json` 存在，或增量设计文档已记录唯一明确方向。
+   - 若仍有未选择的视觉方向 / 交互方案 / 产品取舍，才发起 Decision GATE。
+   - 若方向已由用户前文选择或需求/设计文档已固化，报告状态后直接进入 Phase 3；不要再问"是否继续 Phase 3"。
 
 4. **(Optional)** Run `gstack-design-html` to generate high-fidelity prototype
 
-5. **Next**: `/dev:plan` (Phase 3)
+5. **Next**: `/dev:plan` (Phase 3). 默认自动进入；只有存在 unresolved design decision 或用户明确要求逐步确认时才停下。
 
 ## Inputs / Outputs
 
@@ -104,7 +106,7 @@ Requirements Doc (from Phase 1)
 |---|---|
 | **Input** | Phase 1 requirements doc, existing codebase |
 | **Output** | `DESIGN.md` (persistent) + `approved.json` (per-feature) |
-| **Next** | `/dev:plan` (Phase 3) |
+| **Next** | `/dev:plan` (Phase 3), auto-continue when no unresolved design decision remains |
 
 ## Iron Law
 

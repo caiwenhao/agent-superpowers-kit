@@ -117,7 +117,10 @@ All routes converge to `ce-brainstorm` as the single exit.
    - **循环**: 审查 -> 修复/用户裁决 -> 再审查，直到零未处理 P0/P1，或达到 3 轮上限，或连续两轮发现相同 P0/P1。
    - 若达到上限或收敛仍有 P0/P1：STOP，报告阻塞；只有用户显式接受风险并把理由写入需求文档的 Deferred/Open Questions 后，才允许进入 `/dev:plan`。
 
-   **GATE: 需求文档必须存在，用户批准。Mandatory review 命中时，必须有 `document-review` 通过证据（零未处理 P0/P1 或用户记录化 override）。**
+   **CHECKPOINT:** 需求文档必须存在；Mandatory review 命中时，必须有 `document-review` 通过证据（零未处理 P0/P1 或用户记录化 override）。
+   - 若需求来自用户明确指令，且没有 open questions / scope tradeoff / P0/P1，报告状态后直接进入下一 phase。
+   - 只有需求包含未决范围、多个合理方向、产品取舍、或需要用户批准 override 时，才发起 Decision GATE。
+   - 不要在需求已清晰且下一步唯一明确时问"是否继续 Phase 2/3"。
 
 4. **Detect next phase** by scanning the approved requirements (中文宣告):
    - 需求涉及 UI (views, pages, components, styles, layouts, visual) -> `/dev:design`
