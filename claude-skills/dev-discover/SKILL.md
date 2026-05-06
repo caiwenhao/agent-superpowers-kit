@@ -1,11 +1,11 @@
 ---
 name: dev-discover
-description: "Use when starting any new work: a feature idea, vague request, product question, or 'I want to build X'. Detects intent clarity and routes to the right discovery skill, always producing a requirements doc with R-IDs before planning begins."
+description: "Use when starting any new work: a feature idea, vague request, product question, or 'I want to build X'. Detects intent clarity and routes to the right discovery protocol, always producing a requirements doc with R-IDs before planning begins."
 ---
 
 <SUPERVISE-CHECK>
 执行前自检（Codex 环境必读，Claude Code 环境由 L1 hook 覆盖）：
-1. 铁律 6（工作区）：运行 `git rev-parse --abbrev-ref HEAD`。若在 main/master 且不在 `.worktrees/` 子路径 → STOP，创建 worktree。
+1. 铁律 6（工作区）：运行 `git rev-parse --abbrev-ref HEAD`。若在 main/master 且不在 `.worktrees/` 子路径 -> STOP，创建 worktree。
 2. 铁律 7（提交触发）：本 phase 禁止 `git commit` / `git push` / `gh pr create`。提交仅在 `/dev:ship` 中由用户触发。
 3. 铁律 4（证据先行）：声称"完成/通过"前必须有测试命令的实际输出作为证据。
 </SUPERVISE-CHECK>
@@ -17,11 +17,11 @@ description: "Use when starting any new work: a feature idea, vague request, pro
 1. **始终用中文与用户交流。** 所有状态报告、GATE 提示、路由宣告均使用中文。
 2. **工作区前置（强制）。** 在创建任何文档或代码之前，执行 `git rev-parse --abbrev-ref HEAD` 检查当前分支。若在 main/master 或未进入任务专属 worktree，STOP 并调用 `using-git-worktrees` 创建工作区后再继续（路径 `<repo>/.worktrees/<task-name>/`；规范名与环境别名见 `claude-skills/README.md` 的 Skill Naming 表）。
 3. **提交由用户触发。** 本阶段只写文件、运行只读命令，不执行 `git commit` / `git push` / 创建 PR。提交动作只在 `/dev:ship`（Phase 6）由用户显式触发。
-4. **Review 多轮门禁。** Route C/Deep 或高风险需求必须运行 `document-review`，并执行"审查->修复->再审查"循环，直到零未处理 P0/P1、达到 3 轮上限、或连续两轮发现相同问题后升级给用户裁决。
+4. **Review 多轮门禁。** Route C/Deep 或高风险需求必须执行 `references/doc-review-protocol.md` 中的文档审查协议，并执行"审查->修复->再审查"循环，直到零未处理 P0/P1、达到 3 轮上限、或连续两轮发现相同问题后升级给用户裁决。
 
 ## Overview
 
-Phase 1 is the mandatory entry point for all new work. It **detects** user intent clarity, **routes** to the best discovery skill, and **converges** all paths onto `ce-brainstorm` as the single exit, producing a requirements document with traceable R-IDs (R1, R2, R3...).
+Phase 1 is the mandatory entry point for all new work. It **detects** user intent clarity, **routes** to the best discovery protocol, and **converges** all paths onto the brainstorm protocol as the single exit, producing a requirements document with traceable R-IDs (R1, R2, R3...).
 
 Position in workflow: **Phase 1** -> Phase 2 (design) or Phase 3 (planning)
 
@@ -41,12 +41,12 @@ Analyze user input to classify intent. Check these signals in order:
 - 调用 `/dev:wiki-search`,关键词来自用户 prompt;它会扫项目 `wiki/index.md` + 全局 `~/.claude/wiki/index.md` 并按相关性返回页面清单(只读 grep,无 LLM)
 - If relevant pages found -> read them and inject as brainstorm context
 - Announce (中文): "Wiki 中找到 N 篇相关页面，注入 brainstorm 上下文。" or "Wiki 中无相关知识。"
-- This step is informational — it enriches context but does not change routing
+- This step is informational -- it enriches context but does not change routing
 
 **Signal 1: Is there an existing requirements doc?**
 - Search `docs/brainstorms/` for `*-requirements.md` matching the topic (within 30 days)
 - If found and approved -> SKIP Phase 1, go to `/dev:design` or `/dev:plan`
-- If found but incomplete -> RESUME, run `ce-brainstorm` on existing doc
+- If found but incomplete -> RESUME, execute the brainstorm protocol on existing doc
 
 **Signal 2: Does the user have a direction?**
 - No direction detected (keywords: "ideas", "what should I", "improve", "suggest", "don't know what") -> Route A: Ideate first
@@ -58,7 +58,7 @@ Analyze user input to classify intent. Check these signals in order:
 - Single concern / clear boundary / small scope -> Route D: Lightweight brainstorm
 
 **Signal 4: Is Phase 1 doc-review mandatory?**
-After `ce-brainstorm` writes the requirements doc, require `document-review` when any signal is true:
+After the brainstorm protocol writes the requirements doc, require doc-review when any signal is true:
 - Route C / Deep brainstorm
 - Requirements count >8 R-IDs
 - External upstream/API/SDK integration, public endpoint, model alias, or protocol contract
@@ -72,26 +72,25 @@ Route D stays opt-in only when none of these signals apply.
 ```
 User Input
   |
-  +-- [No direction] -------> Route A: ce-ideate -> ce-brainstorm
+  +-- [No direction] -------> Route A: ideate-engine -> brainstorm-engine
   |   "give me ideas"
   |   "what should I improve"
   |
-  +-- [Has direction,  -----> Route B: gstack-office-hours -> ce-brainstorm
-
+  +-- [Has direction,  -----> Route B: office-hours-protocol -> brainstorm-engine
   |    uncertain value]
   |   "is this worth building"
   |   "validate my idea"
   |
-  +-- [Has direction,  -----> Route C: ce-brainstorm (Standard/Deep)
+  +-- [Has direction,  -----> Route C: brainstorm-engine (Standard/Deep)
   |    multi-faceted]            内部 grilling 引擎: grill-with-docs
   |   "add user auth with OAuth and RBAC"
   |
-  +-- [Has direction,  -----> Route D: ce-brainstorm (Lightweight)
+  +-- [Has direction,  -----> Route D: brainstorm-engine (Lightweight)
       clear & small]
       "add a logout button"
 ```
 
-All routes converge to `ce-brainstorm` as the single exit.
+All routes converge to the brainstorm protocol as the single exit.
 
 ### 辅助技能（brainstorm 内部自动触发）
 
@@ -113,13 +112,13 @@ All routes converge to `ce-brainstorm` as the single exit.
 
 2. **Execute the detected route**
 
-   **Route A**: Run `ce-ideate` -> user selects direction -> feed into `ce-brainstorm`
-   **Route B**: Run `gstack-office-hours` -> validated direction -> feed into `ce-brainstorm`
-   **Route C/D**: Run `ce-brainstorm` directly (scope auto-assessed by `ce-brainstorm` itself)
+   **Route A**: Execute the ideation protocol from `references/ideate-engine.md` -> user selects direction -> feed into brainstorm protocol
+   **Route B**: Execute the office hours protocol from `references/office-hours-protocol.md` -> validated direction -> feed into brainstorm protocol
+   **Route C/D**: Execute the brainstorm protocol defined in `references/brainstorm-engine.md` directly (scope auto-assessed internally)
 
-3. **REVIEW GATE: `document-review`（条件强制）**
-   - Mandatory signals 命中时：立即运行 `document-review <requirements-path>`，不得只在 handoff 菜单里提供 opt-in。
-   - 无 mandatory signals 时：保留 opt-in，由 `ce-brainstorm` Phase 4 handoff 提供选项。
+3. **REVIEW GATE: document review（条件强制）**
+   - Mandatory signals 命中时：立即执行 `references/doc-review-protocol.md` 中的文档审查协议，不得只在 handoff 菜单里提供 opt-in。
+   - 无 mandatory signals 时：保留 opt-in，由 brainstorm Phase 4 handoff 提供选项。
    - 多人格审查覆盖 coherence / feasibility / product-lens / design-lens / security-lens / scope-guardian / adversarial。
    - 在 Codex 下，若 reviewer-agent / task spawning 可用，必须按角色分发为多 agent 审查（可 bounded parallel）。不要在能力可用时退化成单线程综合结论。
    - 只有在当前 harness 明确拿不到 reviewer agents 时，才允许降级为串行 persona passes；即便降级，也要保留按 reviewer role 分开的发现，并在状态报告里明确写出"已降级为串行角色审查"。
@@ -127,7 +126,7 @@ All routes converge to `ce-brainstorm` as the single exit.
    - **循环**: 审查 -> 修复/用户裁决 -> 再审查，直到零未处理 P0/P1，或达到 3 轮上限，或连续两轮发现相同 P0/P1。
    - 若达到上限或收敛仍有 P0/P1：STOP，报告阻塞；只有用户显式接受风险并把理由写入需求文档的 Deferred/Open Questions 后，才允许进入 `/dev:plan`。
 
-   **CHECKPOINT:** 需求文档必须存在；Mandatory review 命中时，必须有 `document-review` 通过证据（零未处理 P0/P1 或用户记录化 override）。
+   **CHECKPOINT:** 需求文档必须存在；Mandatory review 命中时，必须有文档审查通过证据（零未处理 P0/P1 或用户记录化 override）。
    - 若需求来自用户明确指令，且没有 open questions / scope tradeoff / P0/P1，报告状态后直接进入下一 phase。
    - 只有需求包含未决范围、多个合理方向、产品取舍、或需要用户批准 override 时，才发起 Decision GATE。
    - 不要在需求已清晰且下一步唯一明确时问"是否继续 Phase 2/3"。
