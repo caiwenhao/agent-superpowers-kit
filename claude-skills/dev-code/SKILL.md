@@ -55,14 +55,16 @@ Position in workflow: Phase 3 (planning) -> **Phase 4** -> Phase 5 (verification
 
 | Detected Signal | Auto-triggered Skill |
 |---|---|
-| Implementation Unit has `Execution note: test-first` | `test-driven-development` (RED-GREEN-REFACTOR) |
+| Implementation Unit has `Execution note: test-first` | `tdd`（垂直切片 RED-GREEN-REFACTOR：一个测试 → 一个实现 → 重复；禁止水平切片；测试只验证公共接口行为；接口设计追求 deep module；mock 规则见 `tdd/mocking.md`） |
 | Implementation Unit has `Execution note: characterization-first` | Characterization tests before changes |
 | Implementation Unit has `Execution note: external-delegate` | Codex delegation mode |
-| Bug encountered during implementation | `ce-debug` (causal-chain-gated, 4-phase) / `investigate` |
+| Bug encountered during implementation | `diagnose`（构建 feedback loop → 复现 → 3-5 可证伪假设 → 仪器化 → 修复 + 回归测试 → 清理 [DEBUG-xxxx] 标签）；fallback: `ce-debug` |
 | Multiple independent test failures | `dispatching-parallel-agents` |
 | Files in `views/`, `components/`, `*.tsx`, `*.css` touched | `frontend-design` (auto-detects DESIGN.md) + **`dev-browser`** (启动 dev server 后真机验证 golden path、表单、控制台无 error) |
 | Plan references a GitHub Issue | `reproduce-bug` (UI 复现时叠加 `dev-browser`) |
 | Goal is measurable metric improvement | `ce-optimize` (iterative experiment loop with convergence) |
+| Agent 进入不熟悉的代码区域（多次跨文件跳转、读 3+ 个不相关模块仍无法定位） | `zoom-out`（上升一层抽象，用领域词汇表画出相关模块和调用者的地图） |
+| 修复完成后发现架构摩擦（无好的测试 seam、浅模块、紧耦合） | 标记 `improve-codebase-architecture` 建议（不在 Phase 4 执行，留给 Phase 7 或独立任务） |
 
 ## Workflow
 

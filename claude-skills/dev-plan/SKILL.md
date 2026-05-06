@@ -133,6 +133,28 @@ Plan created by ce-plan
 
 7. **Next**: `/dev:code` (Phase 4). 默认自动进入；只有 unresolved plan decision / risk override / 用户明确要求逐步确认时才停下。
 
+### 计划后分解：`to-issues`（可选）
+
+计划审查通过后，如果项目使用 Issue Tracker 且计划包含 3+ Implementation Units，自动建议运行 `to-issues`：
+
+- 每个 Issue 是一个**垂直切片**（tracer bullet），端到端穿透所有集成层
+- 标注 AFK（agent 可独立完成）/ HITL（需人工判断）
+- 标注依赖关系（blocked by）
+- 发布到 Issue Tracker 并打 `needs-triage` 标签
+
+不强制——单人项目或 1-2 Unit 的小计划可跳过。用户拒绝时直接进入 `/dev:code`。
+
+### 架构词汇（`improve-codebase-architecture` 注入）
+
+`ce-plan` 的研究子 Agent 在扫描代码库时，如果发现计划涉及的模块存在架构摩擦，使用精确词汇描述：
+
+- **Module** — 有接口和实现的任何单元
+- **Depth** — 接口后面隐藏了多少行为（深 = 高杠杆）
+- **Seam** — 可以不编辑原处就改变行为的位置
+- **Shallow module** — 接口几乎和实现一样复杂（反模式）
+
+在计划中标注"此 Unit 包含架构深化"。不自动触发完整的 `/improve-codebase-architecture` 会话。
+
 ## Inputs / Outputs
 
 | | Value |

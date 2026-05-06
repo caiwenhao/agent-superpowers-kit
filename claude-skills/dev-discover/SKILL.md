@@ -83,7 +83,7 @@ User Input
   |   "validate my idea"
   |
   +-- [Has direction,  -----> Route C: ce-brainstorm (Standard/Deep)
-  |    multi-faceted]
+  |    multi-faceted]            内部 grilling 引擎: grill-with-docs
   |   "add user auth with OAuth and RBAC"
   |
   +-- [Has direction,  -----> Route D: ce-brainstorm (Lightweight)
@@ -92,6 +92,16 @@ User Input
 ```
 
 All routes converge to `ce-brainstorm` as the single exit.
+
+### 辅助技能（brainstorm 内部自动触发）
+
+| 检测到的信号 | 自动触发技能 | 角色 |
+|---|---|---|
+| brainstorm 进入 grilling 阶段 | `grill-with-docs` | 领域对齐：挑战计划 vs 现有领域模型，锐化术语，即时更新 CONTEXT.md + ADR |
+| 非代码决策需要穷举（产品方向、架构取舍、流程设计） | `grill-me` | 通用决策树穷举，不涉及代码 |
+| grilling 完成 + 项目有 Issue Tracker + 用户要求快速合成 | `to-prd` | 直接从对话上下文合成 PRD 并发布到 Issue Tracker，不再访谈 |
+| 项目无 `CONTEXT.md` + grilling 中首次澄清领域术语 | 懒创建 `CONTEXT.md` | 格式遵循 `grill-with-docs` 的 CONTEXT-FORMAT.md |
+| 已有 `CONTEXT.md` + grilling 中发现新术语或修正 | 即时更新 `CONTEXT.md` | 不攒到最后 |
 
 ## Workflow
 

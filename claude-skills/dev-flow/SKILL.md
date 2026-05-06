@@ -108,7 +108,20 @@ gh pr view --json state,title 2>&1
 | Uncommitted code changes, no review evidence | Phase 5 (verify) -- needs review |
 | Open PR with unresolved review threads | Phase 6 (ship) -- resolve feedback, then ship |
 | Plan with `status: active`, all units checked, no code changes | Phase 5 (verify) -- confirm completion |
-| Nothing in progress | Check Signal 2a |
+| Nothing in progress | Check Signal 1b |
+
+### Signal 1b: Issue Tracker 有待处理 Issue?
+
+如果项目配置了 Issue Tracker（`/setup-matt-pocock-skills` 或等效配置），检测待处理 bucket：
+
+| Finding | Action |
+|---|---|
+| `needs-triage` 有新 Issue | 展示待处理列表，用户选择后运行 `triage` -> 路由到 Phase 1 或 Bug Fix |
+| `needs-info` 有 reporter 新回复 | 展示需重新评估的 Issue |
+| `ready-for-agent` 有待认领 Issue | 展示可认领列表，用户选择后直接进入对应工作流 |
+| 无待处理 Issue 或无 Issue Tracker | Check Signal 2a |
+
+此信号是**信息性**的——展示后等用户选择，不自动认领。用户可跳过直接描述新工作。
 
 ### Signal 2a: Is this a bug fix?
 
@@ -236,13 +249,19 @@ Signal 0: 工作区检查（同标准流程）
     |
     v
 Step 1: 复现
-    reproduce-bug (涉及 UI 时叠加 dev-browser)
+    reproduce-bug + diagnose Phase 1（构建 feedback loop）
+    (涉及 UI 时叠加 dev-browser)
+    diagnose 优先级: 失败测试 > curl > CLI > headless browser
+      > replay trace > throwaway harness > property fuzz > bisection > HITL
     产出：可稳定触发的复现步骤 + 失败断言
     ⛔ 无法复现 -> 停下，向用户要更多上下文
     |
     v
 Step 2: 根因定位
-    ce-debug（因果链门控 4 阶段）/ investigate
+    diagnose Phase 3-4（3-5 可证伪假设 -> 仪器化）
+    - 每个探针对应一个具体预测，一次只变一个量
+    - 调试日志加 [DEBUG-xxxx] 前缀，便于清理
+    fallback: ce-debug（因果链门控 4 阶段）
     产出：定位到具体代码行 + 因果链解释
     ⛔ 3 轮定位失败 -> 停下质疑架构
     |
