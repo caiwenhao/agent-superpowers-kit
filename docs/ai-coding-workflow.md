@@ -1,8 +1,8 @@
 # AI Coding 研发流程全景图
 
-五套技能库（Skills / Agent Skills / Superpowers / Compound Engineering / gstack）+ `dev:` 编排层，组合形成 **7 阶段研发流程**。
+两个 plugin（claude-skills + superpowers）组成自包含研发流程。gstack 为可选增强层。
 
-每个阶段标注了**智能路由逻辑**、**最佳技能组合**和**核心产出文档**，基于对 130+ 个技能源码的深度分析。
+claude-skills 内联了核心执行协议（17 个 references/ 文件），superpowers 提供行为纪律。
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
@@ -47,7 +47,7 @@
 
 | 信号 | 检测方式 | 路由结果 |
 |---|---|---|
-| Signal 0: 是否在任务专属工作区 | `git rev-parse --abbrev-ref HEAD` + `git worktree list` | 在 main/master 或未进入任务专属 worktree -> 调用 `compound-engineering:ce-worktree`（或 `superpowers:using-git-worktrees`）先创建工作区，再进入任何 Phase |
+| Signal 0: 是否在任务专属工作区 | `git rev-parse --abbrev-ref HEAD` + `git worktree list` | 在 main/master 或未进入任务专属 worktree -> 调用 `superpowers:using-git-worktrees` 先创建工作区，再进入任何 Phase |
 | Signal 1: 有无未完成工作 | plan status + git status + PR | 恢复到中断的阶段 |
 | Signal 1b: Issue Tracker 有待处理 Issue | `triage` 状态机检测 `needs-triage` / `needs-info` 有新回复 / `ready-for-agent` 待认领 | 展示待处理 bucket，用户选择后进入对应 Issue 的工作流（`triage` -> Phase 1 或 Bug Fix） |
 | Signal 2a: 是否为 Bug 修复意图 | 关键词（bug / fix / 修复 / 报错 / crash / regression）+ 引用 Issue / 错误日志 / stack trace | **Bug Fix 快速路径**（见下方专节） |
@@ -256,7 +256,7 @@ brainstorm / grilling 过程中，如果项目根目录无 `CONTEXT.md`，在第
 | Route D 且无以上信号 | opt-in，brainstorm handoff 菜单提供 review |
 
 多轮语义:
-- 使用 Compound Engineering 的 `ce-doc-review` / `compound-engineering:ce-doc-review`，不要用 standalone `document-review` 替代。
+- 执行 `dev-discover/references/doc-review-protocol.md` 或 `dev-plan/references/doc-review-protocol.md` 中的文档审查协议。
 - Codex 下若 reviewer-agent / task spawning 可用，优先做多 agent reviewer fanout；只有拿不到 reviewer agents 时，才允许降级为串行角色审查，并要明确报告降级。
 - 循环: 审查 -> 修复/用户裁决 -> 再审查，直到零未处理 P0/P1、达到 3 轮上限、或连续两轮发现相同 P0/P1。
 - 达到上限或收敛仍有 P0/P1 时，STOP；只有用户显式接受风险并把理由写入需求文档 Deferred/Open Questions，才允许进入 `/dev:plan`。
@@ -368,7 +368,7 @@ dev:plan 检测 Implementation Unit 数量，自动选审深度 (Layer 2)
 
 | 层级 | 门禁 |
 |---|---|
-| Layer 1 | `ce-doc-review <plan-path>` 必须通过；不要用 standalone `document-review` 替代 |
+| Layer 1 | `references/doc-review-protocol.md` 必须通过 |
 | Layer 2 | 选中的 `plan-eng-review` / `autoplan` / `plan-design-review` / `plan-devex-review` 必须写入 REVIEW REPORT 并 cleared |
 
 多轮语义:
@@ -491,7 +491,7 @@ dev-code 外层编排
 | 多个独立测试失败 | `dispatching-parallel-agents` |
 | 触碰 `views/`, `components/`, `*.tsx`, `*.css` | `frontend-design`（自动检测 DESIGN.md） + `dev-browser`（启动 dev server 后真机验证 golden path） |
 | Plan 引用 GitHub Issue | `reproduce-bug`（涉及 UI 复现时叠加 `dev-browser`） |
-| 目标为可度量指标优化（prompt/性能/搜索质量） | `ce-optimize`（实验循环 + 度量收敛） |
+| 目标为可度量指标优化（prompt/性能/搜索质量） | 执行 `dev-code/references/optimize-engine.md`（实验循环 + 度量收敛） |
 | Agent 进入不熟悉的代码区域（多次跨文件跳转、读 3+ 个不相关模块仍无法定位） | `zoom-out`（上升一层抽象，用领域词汇表画出相关模块和调用者的地图） |
 | 修复完成后发现架构摩擦（无好的测试 seam、浅模块、紧耦合） | 标记 `improve-codebase-architecture` 建议（不在 Phase 4 执行，留给 Phase 7 或独立任务） |
 
@@ -801,7 +801,7 @@ ship (合并基准分支 -> 测试 -> 覆盖率审计 60%/80% -> 计划完成度
 
 > 跨 phase 的诊断工具，不参与流程编排。
 
-`dev:*` 流程引用大量第三方技能（`compound-engineering:*`、`superpowers:*`、`gstack-*`、`ce:*`）和 CLI（`dev-browser`）。当机器 / harness 切换、plugin 升级、或某个 phase 路由到的 skill 报"not found"时，调用 `/dev:doctor` 一次性扫描全部依赖，给出三态报告：
+`dev:*` 流程自包含核心执行逻辑（17 个 `references/*.md` 协议文件），仅依赖 `superpowers` 作为外部行为纪律层。`gstack-*` 为可选增强。当 reference 文件缺失、superpowers 未安装、或某个 phase 行为异常时，调用 `/dev:doctor` 诊断。
 
 - ✅ **已安装** -- 在默认位置找到
 - ❌ **缺失** -- 默认位置和 PATH 都没找到 → 影响哪些 phase 必须列出
@@ -940,7 +940,7 @@ dev-browser --connect <<'EOF' ...
 
 `dev:learn` 默认减少交互确认，尤其是 Route A:
 
-- Route A (`ce-compound`)：默认 **Full + session history**，直接执行
+- Route A（执行 `dev-learn/references/compound-engine.md`）：默认 **Full + session history**，直接执行
 - 只有用户明确说"轻量"/"不要查会话历史"，或会话历史检索存在 blocker 时，才改变默认或发起确认
 - 不把 token 成本当作默认决策面；用户没要求时，不问"为了省 token 要不要轻量模式"
 - 若 Phase 5.5 已完成同一知识沉淀，Phase 6 后的 Phase 7 只处理部署后新增事实、retro、或用户明确要求的补充；不要重复写同一份 solution。
@@ -974,7 +974,7 @@ Phase 5 (ce:code-review) <-- learnings-researcher 始终启用 -----------------
 |---|---|---|
 | **重复发现** | Phase 5 review 多次报告同类 P1 | `learnings.jsonl` 中同一 category 出现 3+ 次 |
 | **流程摩擦** | Phase 4 实现中反复踩同一坑 | retro 报告中相同文件热点连续 2 周 |
-| **上游新能力** | compound-engineering / superpowers / gstack 子模块更新 | `git submodule status` delta 非零 |
+| **上游新能力** | superpowers 更新 / gstack 可选层更新 | `git submodule status` delta 非零 |
 | **技能过期** | 技能引用的工具/技能已改名或删除 | 技能内引用的 skill name 在 skill registry 中不存在 |
 
 ### 改进流程
@@ -1196,7 +1196,7 @@ ce:plan -> GATE -> ce:work -> GATE -> ce:code-review(autofix) -> todo-resolve ->
 | 3 | **根因先于修复** -- 不理解为什么坏就不能修 | diagnose, systematic-debugging, investigate, **Bug Fix 快速路径 Step 2** |
 | 4 | **证据先于断言** -- 没跑命令不能说"通过了" | verification-before-completion |
 | 5 | **验证先于采纳** -- 审查反馈先验证再实现 | receiving-code-review |
-| 6 | **工作区先于工作** -- 创建任何文档或代码前必须在任务专属 worktree / feature branch 中，否则先创建工作区 | dev:flow Signal 0, compound-engineering:ce-worktree, superpowers:using-git-worktrees |
+| 6 | **工作区先于工作** -- 创建任何文档或代码前必须在任务专属 worktree / feature branch 中，否则先创建工作区 | dev:flow Signal 0, superpowers:using-git-worktrees |
 | 7 | **提交由用户触发** -- AI 在 Phase 1-5 只修改文件、运行测试，不主动 `git commit` / `git push` / 创建 PR；提交仅在用户显式调用 `/dev:ship` 或说"提交/commit/push/PR"时进行 | dev:ship, ce:ce:commit-push-pr, gstack-ship |
 
 ---
@@ -1286,37 +1286,34 @@ Phase 3 (ce:plan) <-- learnings-researcher 自动搜索 ------------------------
 
 ---
 
-## 五库定位总结
+## 两 Plugin 架构总结
 
-| 库 | 技能数 | 定位 | 核心价值 |
-|---|---|---|---|
-| **Skills (Matt Pocock)** | 9 | 工程**纪律** | 单个技能的内容深度：diagnose 的 feedback loop、tdd 的垂直切片、grill-with-docs 的领域对齐、improve-codebase-architecture 的深化词汇、triage 的状态机、to-issues 的垂直分解 |
-| **Agent Skills** | 21 | 工程**基础** | 20 个通用工程实践（TDD、调试、代码审查、API 设计、安全加固、性能优化等）-- 独立于工具链的基本功 |
-| **Superpowers** | 14 | 开发**方法论** | 定义"怎样才算做对了" -- TDD、根因调试、证据验证等铁律 + 技能激活与编排机制 |
-| **Compound Engineering** | 42 | 开发**流水线** | 定义"数据怎么流" -- brainstorm->plan->work->review 的文档驱动管道 + 知识复利系统 |
-| **gstack** | 41 | 开发**工具箱** | 定义"用什么工具" -- 设计探索、多视角评审、部署验证、安全审计、浏览器测试等专业工具 |
+| Plugin | 角色 | 内容 |
+|---|---|---|
+| **claude-skills** | 自包含研发流程 | 13 个 phase skill（SKILL.md）+ 17 个内联执行协议（references/*.md）= 完整 7 阶段流程 |
+| **superpowers** | 行为纪律层 | TDD 反合理化、根因调试纪律、证据验证、worktree 隔离、代码审查接收纪律 |
 
-### 五库分层关系
+### 可选增强层
+
+| 来源 | 角色 | 安装后效果 |
+|---|---|---|
+| **gstack** | 专业工具 | 设计探索（design-shotgun）、全站 QA、安全审计（CSO）、性能基线、部署金丝雀 |
+| **skills 项目** | 工程纪律 | tdd 垂直切片、diagnose feedback loop、grill-with-docs 领域对齐、triage 状态机 |
+
+### 分层关系
 
 ```
 ┌─────────────────────────────────────────────────┐
-│          dev: 编排层 (8 技能)                     │  "该进哪个阶段，用哪些技能"
-│  dev:flow / discover / design / plan /           │
-│  code / verify / ship / learn                    │
+│  claude-skills (13 SKILL.md + 17 references)     │  "自包含 7 阶段流程"
 ├─────────────────────────────────────────────────┤
-│          gstack 工具箱 (41 技能)                  │  "专业工具：设计/评审/部署/安全/QA"
+│  superpowers (14 技能)                            │  "行为纪律：不偷懒、不跳步"
 ├─────────────────────────────────────────────────┤
-│   Compound Engineering 流水线 (42 技能)           │  "文档驱动管道 + 知识复利"
-├─────────────────────────────────────────────────┤
-│        Superpowers 方法论 (14 技能)               │  "铁律 + 反合理化"
-├─────────────────────────────────────────────────┤
-│    Skills 工程纪律 (9 技能)                       │  "单技能深度：feedback loop + 垂直切片 + 领域对齐"
-├─────────────────────────────────────────────────┤
-│       Agent Skills 基础层 (21 技能)               │  "通用工程实践"
+│  [可选] gstack (41 技能)                          │  "专业工具增强"
+│  [可选] skills 项目 (9 技能)                      │  "工程纪律增强"
 └─────────────────────────────────────────────────┘
 ```
 
-五者组合 = **通用工程基础** + **深度工程纪律** + **有纪律的方法论** + **可追溯的文档管道** + **全栈工具支撑** + **智能编排路由**
+两者组合 = **自包含流程** + **行为纪律** = 完整研发能力。gstack/skills 项目安装后自动增强，不安装也不阻塞。
 
 ---
 
