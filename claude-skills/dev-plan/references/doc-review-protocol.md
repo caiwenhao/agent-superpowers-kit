@@ -1,7 +1,7 @@
 <!-- Canonical source: dev-discover/references/doc-review-protocol.md. Keep in sync. -->
 # Document Review Protocol
 
-Condensed from ce-doc-review. Invoke via `Skill("ce-doc-review", "[mode:headless] <path>")`.
+Condensed document review protocol. Invoke the canonical `document-review` skill when available, or execute this reference inline with `[mode:headless] <path>` in non-interactive contexts.
 
 ## 1. Personas
 

@@ -70,13 +70,14 @@ while (tasks remain):
   - Run System-Wide Test Check (below)
   - Run tests
   - Mark task completed
-  - Evaluate incremental commit opportunity
+- Evaluate staging opportunity; do not commit outside Phase 6
 ```
 
 **Execution note honor:**
-- Test-first: write failing test before implementation. Do not write test + impl in same step.
-- Characterization-first: capture existing behavior before changing it.
-- No note: proceed pragmatically.
+- Behavior change: write a failing test or failing assertion before implementation. Do not write test + impl in same step.
+- Test-first: same rule, plus follow any unit-specific testing strategy.
+- Characterization-first: capture existing behavior before changing it, then write the failing assertion for the intended behavior change.
+- No note: still use TDD for behavior changes; only pure docs, mechanical config, generated code, or explicitly approved exceptions may skip RED.
 
 ## Test Discovery Protocol
 
@@ -106,13 +107,13 @@ Before marking a task done, answer:
 
 **Skip when:** leaf-node change with no callbacks, no state persistence, no parallel interfaces.
 
-## Incremental Commits
+## Incremental Staging
 
-| Commit when | Do not commit when |
+| Stage when | Do not stage when |
 |---|---|
 | Logical unit complete | Small part of larger unit |
 | Tests pass + meaningful progress | Tests failing |
 | About to switch contexts | Purely scaffolding with no behavior |
 | About to attempt risky changes | Would need "WIP" message |
 
-Stage only files related to the logical unit. Use conventional commit messages derived from unit Goal.
+Stage only files related to the logical unit. Do not run `git commit`; commits happen only in Phase 6 after user ship authorization.

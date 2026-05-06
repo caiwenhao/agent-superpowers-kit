@@ -1,6 +1,6 @@
 ---
 name: dev-verify
-description: "Use after implementation to run multi-layer quality verification. Detects diff content to auto-select which review personas and additive layers to activate. Interactive review protocol is always the core gate."
+description: "Use after implementation is complete, before delivery, when the current diff needs quality review, tests, browser checks, security checks, or release readiness evidence."
 ---
 
 <SUPERVISE-CHECK>
@@ -31,6 +31,23 @@ Position in workflow: Phase 4 (code) -> **Phase 5** -> Phase 5.5 (pre-ship knowl
 - Ready to validate before creating a PR or shipping
 
 **Never skip Phase 5.**
+
+## Quick Reference
+
+| Need | Action |
+|---|---|
+| 核心质量门 | `references/review-interactive.md` |
+| UI diff | `test-browser` or `dev-browser` |
+| 多页 UI 变更 | `gstack-qa` + `gstack-design-review` fallback aware |
+| 安全敏感 diff | `gstack-cso` |
+| README/docs/CLI diff | `gstack-devex-review` |
+
+## Common Mistakes
+
+- core review 过了就宣布 PASS：还要跑命中的 additive layers
+- 复用旧 PASS 证据：必须绑定当前 HEAD/tree/diff
+- 因工具缺失跳过必需验证层：需要 fallback 或 STOP
+- 在审查阶段顺手扩大修复范围
 
 ## Scene Detection
 
@@ -99,9 +116,8 @@ In Codex, reviewer-role fanout should use multiple reviewer agents when subagent
    - Residual issues -> todo system
    - **循环**: 审查 -> 修复 -> 再审查，直到零 P0/P1 或 3 轮上限或收敛
 
-   **CHECKPOINT:** PASS 裁决（零 P0/P1）。
-   - PASS 时直接进入 Phase 5.5 交付前沉淀/自省判断；不要问"是否继续"。
-   - 只有仍有 P0/P1、需要用户接受风险、或附加审查层出现 blocker 时才发起 Decision GATE / STOP。
+   **CORE CHECKPOINT:** Core review 零未处理 P0/P1 后继续 additive layers；此时还不能宣布 Phase 5 PASS。
+   - 只有 core review 仍有 P0/P1、需要用户接受风险、或无法继续附加层时才发起 Decision GATE / STOP。
 
 3. **If 未通过**: 修复发现（先验证再采纳），循环直到通过
 
@@ -116,6 +132,10 @@ In Codex, reviewer-role fanout should use multiple reviewer agents when subagent
    - 若修复超出当前 cycle 范围或需要更多上下文，标记为 deferred 并记录原因
    - 宣告处理结果："已处理 N 个 todo，M 个延迟到下一 cycle。"
 
+   **PHASE 5 PASS CHECKPOINT:** core review、所有命中的 additive layers、todo-resolve 都无 blocker，并且 PASS 证据绑定当前 HEAD/tree/diff。
+   - PASS 时直接进入 Phase 5.5 交付前沉淀/自省判断；不要问"是否继续"。
+   - 任一 additive layer 失败、缺少必须工具且无可接受 fallback、或 PASS 证据不能绑定当前 diff时，STOP。
+
 6. **Next**: `/dev:flow` Phase 5.5 pre-ship knowledge/supervision decision, then `/dev:ship` (Phase 6). 默认自动进入 Phase 5.5；Phase 6 仍需 ship 授权。
 
 ## Inputs / Outputs
@@ -123,7 +143,7 @@ In Codex, reviewer-role fanout should use multiple reviewer agents when subagent
 | | Value |
 |---|---|
 | **Input** | Code diff, plan file path (for R-ID verification) |
-| **Output** | PASS verdict, safe_auto fixes applied, todos resolved |
+| **Output** | PASS verdict bound to current HEAD/tree/diff, safe_auto fixes applied, additive layers clear, todos resolved |
 | **Next** | `/dev:flow` Phase 5.5, then `/dev:ship` (Phase 6); auto-continue to Phase 5.5 when PASS |
 
 ## Iron Laws

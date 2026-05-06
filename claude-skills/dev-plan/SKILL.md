@@ -1,6 +1,6 @@
 ---
 name: dev-plan
-description: "Use when a requirements doc exists and it is time to create an implementation plan. Detects scope to select review depth: autoplan for large features, plan-eng-review for ordinary work. Plan creation and core reviews use internal reference protocols."
+description: "Use when requirements exist and implementation decisions, task units, risks, tests, or review gates need to be planned before coding."
 ---
 
 <SUPERVISE-CHECK>
@@ -31,6 +31,23 @@ Position in workflow: Phase 2 (design) -> **Phase 3** -> Phase 4 (implementation
 - Work is non-trivial (more than a one-file fix)
 
 **Skip when:** Plan already exists and has review-pass evidence for this work item (Layer 1 passed and Layer 2 review cleared). A freshly written plan file without completed review gates does **not** qualify.
+
+## Quick Reference
+
+| Need | Action |
+|---|---|
+| 生成实施计划 | `references/plan-engine.md` |
+| 文档门禁 | `references/doc-review-protocol.md` |
+| 工程审查 | `references/eng-review-protocol.md` |
+| UI 设计审查 | `gstack-plan-design-review` or design-lens fallback |
+| API/CLI/SDK DX 审查 | `gstack-plan-devex-review` or feasibility/devex fallback |
+
+## Common Mistakes
+
+- 把写出 plan 文件当成 Phase 3 完成：Layer 1/2 review gate 之后才算通过
+- 因 gstack 技能缺失就跳过审查维度：必须走 fallback
+- 产出水平切片计划：Implementation Unit 必须是垂直切片
+- 没有记录 override 就带着 P0/P1 进入 Phase 4
 
 ## Scene Detection
 
@@ -73,19 +90,19 @@ Plan created by plan-engine
   |   (large/cross-cutting)
   |
   +-- 3-9 Units ------------------------> eng-review-protocol (required)
-  |   (standard)                           + gstack-plan-design-review (if DESIGN.md exists, OPTIONAL)
+  |   (standard)                           + gstack-plan-design-review (if UI/DESIGN.md exists, required dimension; fallback allowed)
   |
   +-- 1-2 Units ------------------------> eng-review-protocol only
   |   (small)
   |
-  +-- Units touch API/CLI/SDK/docs -----> + gstack-plan-devex-review (OPTIONAL, additive)
+  +-- Units touch API/CLI/SDK/docs -----> + gstack-plan-devex-review (additive; fallback allowed)
       (developer-facing)
 ```
 
-**OPTIONAL skill degradation:** If `gstack-plan-design-review` or `gstack-plan-devex-review` is not installed:
+**Skill degradation:** If `gstack-plan-design-review` or `gstack-plan-devex-review` is not installed:
 > gstack-<name> 未安装 -- 使用内置 doc-review-protocol 的 design-lens/feasibility persona 覆盖。
 
-Fall back to executing `references/doc-review-protocol.md` with the relevant persona (design-lens for design review, feasibility for devex review).
+Fall back to executing `references/doc-review-protocol.md` with the relevant persona (design-lens for design review, feasibility for devex review). The review dimension is not optional when its trigger is present; only the external gstack implementation is optional.
 
 ## Workflow
 
@@ -125,9 +142,9 @@ Fall back to executing `references/doc-review-protocol.md` with the relevant per
 
 6. **REVIEW (Layer 2): 多视角计划审查 多轮循环** (auto-selected)
    - Large: Run sequential multi-review: execute eng-review-protocol + doc-review-protocol with full persona set (CEO + Design + Eng + DX perspectives, serial)
-   - Standard: Execute the engineering review protocol from `references/eng-review-protocol.md` (required gate) + `gstack-plan-design-review` (if UI, OPTIONAL)
+   - Standard: Execute the engineering review protocol from `references/eng-review-protocol.md` (required gate) + design review dimension if UI/DESIGN.md exists (`gstack-plan-design-review` or design-lens fallback)
    - Small: Execute `references/eng-review-protocol.md` only
-   - Developer-facing: + `gstack-plan-devex-review` (OPTIONAL, additive)
+   - Developer-facing: + `gstack-plan-devex-review` or feasibility/devex fallback
    - **OPTIONAL skill degradation:** gstack-<name> 未安装 -- 使用内置 doc-review-protocol 的 design-lens/feasibility persona 覆盖。
    - **循环**: 每个审查协议内部执行多轮修复，直到零未处理 P0/P1、达到上限、或连续两轮发现相同问题。
    - 若内置协议均已执行但 gstack 可选审查不可用，Codex 路径优先保留多 agent 角色审查：至少运行一轮 doc-review-protocol reviewer fanout 覆盖 coherence/feasibility/scope/design/security/product/adversarial，并明确还缺少哪些维度；之后由用户选择手动补充或记录 override。不得直接进入 `/dev:code`。

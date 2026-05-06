@@ -1,6 +1,6 @@
 ---
 name: dev-doctor
-description: "Use when starting work on this repo for the first time, after a fresh install, after moving to a new machine/harness, or when any /dev:* phase routes to a skill that reports 'not found' or behaves unexpectedly. Scans every dev-*/SKILL.md for downstream skill references (using the flat canonical names defined in claude-skills/README.md, plus gstack-*, CLI tools like dev-browser) and reports which are installed, which are missing, and which phases degrade as a result. Probes both Claude Code (~/.claude/plugins, ~/.claude/skills) and Codex (~/.codex/skills, ~/.codex/superpowers/skills) discovery paths."
+description: "Use after a fresh install, machine or harness change, plugin update, missing skill error, missing CLI tool, or unexpected /dev:* phase behavior."
 ---
 
 # dev:doctor -- 依赖健康检查
@@ -28,6 +28,23 @@ description: "Use when starting work on this repo for the first time, after a fr
 - `claude-skills/README.md` 的 Skill Naming 表更新后，想验证两端都能解析
 
 **不适用**：日常写代码 / 审查 / 提交流程，已知环境稳定时无需频繁调用。
+
+## Quick Reference
+
+| Need | Check |
+|---|---|
+| 技能缺失 | 双端 canonical probe |
+| CLI 缺失 | `command -v` |
+| supervise 依赖 | `scripts/supervise/*.py` |
+| wiki 健康 | 项目/全局 wiki 骨架与 index |
+| phase 降级 | 当前 harness 缺失项映射到 phase |
+
+## Common Mistakes
+
+- 把 `dev-doctor` 当成自动修复器：它只报告
+- 只检查当前 harness，不看另一端命名解析
+- 用 SKILL 正文 grep 替代 README canonical 表
+- 忽略 repo-local scripts 和 wiki 健康
 
 ## Scan Strategy
 

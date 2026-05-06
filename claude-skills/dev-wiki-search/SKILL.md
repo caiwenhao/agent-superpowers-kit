@@ -1,6 +1,6 @@
 ---
 name: dev-wiki-search
-description: "Use when a dev:* phase (discover/plan) needs to query existing knowledge before starting work, or when the user asks 'what do we already know about X'. Runs grep-based search across project wiki (<project>/wiki/) and global wiki (~/.claude/wiki/), ranks hits by location (index.md > concepts/entities > sources > synthesis), returns a compact brief with relative paths the caller can read. No LLM needed; the caller does interpretation."
+description: "Use when a dev:* phase needs existing project or global wiki knowledge, or when the user asks what is already known about a topic."
 ---
 
 # dev:wiki-search -- 双层 wiki 快速查询
@@ -18,6 +18,22 @@ description: "Use when a dev:* phase (discover/plan) needs to query existing kno
 - `dev-plan` 并行研究步骤 —— 与 repo-research / learnings 同级并行触发
 - 用户主动问"我们以前是不是做过 X"、"有没有相关的踩坑记录"
 - `dev-learn` 做 Wiki Ingest 前先查是否已有对应页面,决定 update vs create
+
+## Quick Reference
+
+| Need | Action |
+|---|---|
+| 项目知识 | 搜 `<project>/wiki/` |
+| 跨项目知识 | 搜 `~/.claude/wiki/` |
+| 两边都没有 wiki | 提示 `/dev:wiki-init` |
+| 只要候选页 | 本技能返回路径，不做 LLM 解释 |
+
+## Common Mistakes
+
+- 把本技能当解释器：它只找页面
+- wiki 缺失时静默跳过
+- 只搜一侧 wiki
+- 直接修改 wiki 文件
 
 ## Wiki 双层结构
 

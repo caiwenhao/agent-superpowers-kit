@@ -1,6 +1,6 @@
 ---
 name: dev-init
-description: "Use when adopting the dev:* workflow in a new or existing repository. Generates or appends a 'dev:* preamble' section to CLAUDE.md (seven iron laws, behavioral constraints, Chinese working language, commit-by-user-trigger rule) without clobbering existing content, then migrates any repo-level skill directories to a cross-harness dual-symlink pattern (single source `skills/` with `.claude/skills` and `.agents/skills` pointing to it). Ends by invoking dev:doctor to surface missing dependencies."
+description: "Use when adopting the dev:* workflow in a new or existing repository, especially when CLAUDE.md/AGENTS.md or repo-local skill discovery paths are missing."
 ---
 
 # dev:init -- 工作流契约初始化
@@ -11,6 +11,32 @@ description: "Use when adopting the dev:* workflow in a new or existing reposito
 2. **非破坏性。** 已存在的 CLAUDE.md **不覆盖**：只追加"dev:* preamble"节；若该节已存在，读取并询问用户是否更新。仓库级技能目录迁移前先展示 diff 并 GATE,**不破坏任何既有文件**。
 3. **最小主义。** 只做五件事——写 CLAUDE.md preamble + 建 AGENTS.md 软链(Codex 侧) + 迁移仓库级技能目录(可选) + 初始化 wiki 骨架(可选 GATE) + 调 `dev:doctor`。不改 `.claude/settings.json`、不装 plugin。
 4. **提交由用户触发。** 本技能写文件但不创建 commit；用户自行决定何时提交变更。
+
+## When to Use
+
+- 新仓库要接入 `dev:*` 工作流
+- 现有仓库缺少 `CLAUDE.md` / `AGENTS.md` / repo-local skills 发现路径
+- Claude Code 和 Codex 需要共享同一套仓库级技能
+- `dev-wiki-search` / `dev-wiki-ingest` 需要项目 wiki 骨架
+
+**Skip when:** 仓库已具备 `dev:*` preamble、双 harness 发现路径、并且不需要更新契约版本。
+
+## Quick Reference
+
+| Need | Action |
+|---|---|
+| 缺 `CLAUDE.md` | 创建 preamble-only `CLAUDE.md` |
+| 缺 `AGENTS.md` | 建 `AGENTS.md -> CLAUDE.md` 软链 |
+| 仓库级技能布局分裂 | 迁移到 `skills/` 单源 + `.claude/.agents` 双软链 |
+| 缺 wiki 骨架 | 可选创建 `wiki/` 和 `~/.claude/wiki/` |
+| 缺依赖 | 末尾调用 `dev:doctor` |
+
+## Common Mistakes
+
+- 直接覆盖现有 `CLAUDE.md`：只追加或 GATE 替换，不覆盖
+- 自动改 `.claude/settings.json` 或安装插件：本技能不做这些
+- 把空 `skills/` 目录当成必须产物：没有仓库级技能时跳过
+- 把初始化完成当成 ship 授权：本技能只写契约，不交付
 
 ## 与 `/init` 的关系
 

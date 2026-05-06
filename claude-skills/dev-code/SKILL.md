@@ -1,6 +1,6 @@
 ---
 name: dev-code
-description: "Use when a reviewed plan exists and it is time to write code. Detects plan complexity and auto-selects execution strategy (inline, serial agents, parallel agents, or swarm)."
+description: "Use when a reviewed plan exists, or a small clear change is ready for implementation, and files may need to be edited."
 ---
 
 <SUPERVISE-CHECK>
@@ -32,6 +32,23 @@ Position in workflow: Phase 3 (planning) -> **Phase 4** -> Phase 5 (verification
 
 **Never skip Phase 4.**
 
+## Quick Reference
+
+| Need | Action |
+|---|---|
+| 小改动 | inline / serial task list |
+| 多单元独立任务 | parallel sub-agents |
+| 行为变更 | 默认 `test-driven-development` |
+| 批次后自动修复 | `references/review-autofix.md` |
+| Phase 4 收尾 | `/simplify` + final autofix |
+
+## Common Mistakes
+
+- 没有失败测试就写实现：行为变更一律先 RED
+- 把 Phase 4 当成可以 commit 的阶段：只允许修改和可选暂存
+- 因为后面还有 `/dev:verify` 就跳过 autofix loop
+- 让 `ce-work` 进入 shipping/residual gate：它只负责当前 batch
+
 ## Scene Detection (performed by work engine internally)
 
 **Signal 1: Is there a plan file?**
@@ -55,7 +72,8 @@ Position in workflow: Phase 3 (planning) -> **Phase 4** -> Phase 5 (verification
 
 | Detected Signal | Auto-triggered Action |
 |---|---|
-| Implementation Unit has `Execution note: test-first` | `tdd`（垂直切片 RED-GREEN-REFACTOR：一个测试 → 一个实现 → 重复；禁止水平切片；测试只验证公共接口行为；接口设计追求 deep module；mock 规则见 `tdd/mocking.md`） |
+| Any behavior change | `test-driven-development` 默认强制：一个失败测试/失败断言 → 一个实现 → 重复；禁止水平切片；测试只验证公共接口行为；接口设计追求 deep module；mock 规则见 `tdd/mocking.md` |
+| Implementation Unit has `Execution note: test-first` | 强化 TDD 策略；不是触发条件，行为变更即使没有该标记也必须 test-first |
 | Implementation Unit has `Execution note: characterization-first` | Characterization tests before changes |
 | Implementation Unit has `Execution note: external-delegate` | Codex delegation mode |
 | Bug encountered during implementation | `diagnose`（构建 feedback loop → 复现 → 3-5 可证伪假设 → 仪器化 → 修复 + 回归测试 → 清理 [DEBUG-xxxx] 标签） |
@@ -71,7 +89,7 @@ Position in workflow: Phase 3 (planning) -> **Phase 4** -> Phase 5 (verification
 1. **Work engine detects scene** and announces (中文):
    - "计划有 5 个单元，其中 2 个独立 -- 对 Unit 1-2 使用并行 Agent，Unit 3-5 使用串行。"
    - "裸提示，影响 2 个文件 -- 内联执行。"
-   - "计划 Unit 3 标记为 test-first -- 该单元使用 TDD。"
+   - "计划 Unit 3 是行为变更 -- 使用 TDD；test-first 标记提供额外测试策略。"
 
 2. **`dev-code` slices execution into batches, then executes the work protocol from `references/work-engine.md` for each batch**
    - Batch size: 2-3 Implementation Units by default; one batch is fine for small plans.
@@ -96,7 +114,7 @@ Position in workflow: Phase 3 (planning) -> **Phase 4** -> Phase 5 (verification
    - simplify 之后必须再运行一次 autofix review protocol（传入 `plan:<path>`）；这才是 Phase 4 的最终 autofix pass
    - **跳过条件**: diff < 10 行 trivial 改动 / 仅文档变更 / 中途某 Unit 已单独跑过且后续无重大新增
 
-   **CHECKPOINT:** 所有任务完成。测试通过。simplify protocol 已扫过。final autofix 已覆盖 simplify 后 diff，`safe_auto` 已应用。残余 `gated_auto/manual` todo 已记录并交给 Phase 5。
+   **CHECKPOINT:** 所有任务完成。行为变更均有先失败后通过的测试证据。测试通过。simplify protocol 已扫过。final autofix 已覆盖 simplify 后 diff，`safe_auto` 已应用。残余 `gated_auto/manual` todo 已记录并交给 Phase 5。
    - 条件满足时直接进入 `/dev:verify`；不要问"是否继续 Phase 5"。
    - 若测试失败、任务未完成、或残余问题需要用户取舍，才发起 Decision GATE / STOP。
 
@@ -112,7 +130,7 @@ Position in workflow: Phase 3 (planning) -> **Phase 4** -> Phase 5 (verification
 
 ## Iron Laws
 
-- **No failing test, no production code**
+- **No failing test, no production code** -- applies to every behavior change, not only units marked `test-first`
 - **No root cause, no fix**
 - **3 fix failures: stop and question the architecture**
 - **不主动提交** —— commit / push / PR 仅在 `/dev:ship` 中由用户触发；本阶段产出未提交的工作树变更

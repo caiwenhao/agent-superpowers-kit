@@ -1,6 +1,6 @@
 # Review Autofix Protocol (mode:autofix)
 
-Invoke ce-code-review with `mode:autofix`. No user interaction. Apply safe fixes, report residuals, exit.
+Invoke `ce-review` with `mode:autofix`. No user interaction. Apply safe fixes, report residuals, exit.
 
 ## Persona Selection
 
@@ -63,7 +63,7 @@ Conditional (triggered by diff content -- agent judgment, not keyword matching):
 6. **Validate (Stage 5b).** Spawn one validator per surviving finding. Validator re-checks against diff/code independently. Drop rejected findings.
 7. **Apply safe_auto fixes only.** Spawn one fixer subagent. If `requires_verification: true`, run targeted tests before declaring applied.
 8. **Bounded re-review.** Re-review changed scope after fixes. Max 2 rounds. Residuals after round 2 become handoff.
-9. **Write run artifact** to `/tmp/compound-engineering/ce-code-review/<run-id>/` with findings, applied fixes, residuals, advisory.
+9. **Write run artifact** to `.context/compound-engineering/ce-review/<run-id>/` with findings, applied fixes, residuals, advisory.
 10. **Emit compact residual summary** in return: applied safe_auto fixes first, then residual non-auto findings preserving stable `#`. Include artifact path.
 
 ## Plan Discovery for R-ID Verification

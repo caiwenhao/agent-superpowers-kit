@@ -1,6 +1,6 @@
 ---
 name: dev-wiki-ingest
-description: "Use when dev-learn writes a new docs/solutions/*.md, after a retro is filed, or when the user says 'add this to the wiki' / 'ingest this source'. Compiles a new or updated knowledge source into the structured wiki (project or global) by creating/updating pages in sources/, entities/, concepts/, synthesis/, updating index.md and log.md. Single ingest may touch 5-15 pages. Always uses the dual-wiki pattern: project wiki for project-specific knowledge, ~/.claude/wiki/ for cross-project generalizable knowledge."
+description: "Use after a solution doc or retro is written, or when the user asks to add an article, source, decision, or document to the wiki."
 ---
 
 # dev:wiki-ingest -- 知识编译到 wiki
@@ -22,6 +22,22 @@ description: "Use when dev-learn writes a new docs/solutions/*.md, after a retro
 - **批量场景**:仓库已有大量历史文档(`docs/`、`design/`、`postmortems/`),首次接入 wiki 时一次性迁移 → 走 **批量模式**(见下)
 
 **不适用**:日常 commit 信息、一次性讨论、无沉淀价值的会话记录(那是 dev-learn 判断的事,不是本技能)。
+
+## Quick Reference
+
+| Source type | Mode |
+|---|---|
+| 单个 solution/doc/url | 单源 ingest |
+| 目录或 glob | 批量模式 |
+| 项目特定知识 | `<project>/wiki/` |
+| 通用知识 | `~/.claude/wiki/` |
+
+## Common Mistakes
+
+- 在写入前不展示页面清单 GATE
+- 把源文件当可编辑对象
+- 批量迁移时不维护 `_migration.md`
+- wiki 不存在时不先初始化
 
 ## 批量模式(首次迁移历史文档专用)
 

@@ -125,7 +125,7 @@ stopping: { max_iterations, max_hours, plateau_iterations, target_reached }
 
 ## Post-Optimization Options
 
-1. Run ce-code-review on cumulative diff (baseline to final)
+1. Run ce-review on cumulative diff (baseline to final)
 2. Run ce-compound to document winning strategy
 3. Create PR from optimization branch
 4. Continue with more experiments

@@ -1,6 +1,6 @@
 ---
 name: dev-design
-description: "Use when a requirements doc exists and the work involves UI, visual components, or front-end changes. Detects project design maturity and routes through the right design pipeline. Skip entirely for pure backend work."
+description: "Use when approved requirements involve UI, visual components, layouts, styling, interaction design, accessibility, or front-end user experience."
 ---
 
 <SUPERVISE-CHECK>
@@ -30,6 +30,22 @@ Position in workflow: Phase 1 (discover) -> **Phase 2** -> Phase 3 (planning)
 - Requirements doc exists and the work involves UI, visual components, or front-end changes
 
 **Skip when:** Pure backend, API-only, infrastructure, or CLI work with no visual surface.
+
+## Quick Reference
+
+| Situation | Route |
+|---|---|
+| 没有 `DESIGN.md` | Route A |
+| 有 `DESIGN.md`，无批准方向 | Route B |
+| 有批准方向，计划缺设计审查 | Route C |
+| 纯后端 | Skip Phase 2 |
+
+## Common Mistakes
+
+- 把前端实现期的 `frontend-design` 当成 Phase 2 替代
+- 有 UI 但跳过 `DESIGN.md` 锚点
+- 设计方向未定就进入 Phase 3
+- 因为已有系统就不做功能级视觉方向确认
 
 ## Scene Detection
 

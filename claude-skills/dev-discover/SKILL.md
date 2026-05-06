@@ -1,6 +1,6 @@
 ---
 name: dev-discover
-description: "Use when starting any new work: a feature idea, vague request, product question, or 'I want to build X'. Detects intent clarity and routes to the right discovery protocol, always producing a requirements doc with R-IDs before planning begins."
+description: "Use when starting new work from a feature idea, vague request, product question, business goal, or 'I want to build X' before requirements are approved."
 ---
 
 <SUPERVISE-CHECK>
@@ -32,6 +32,23 @@ Position in workflow: **Phase 1** -> Phase 2 (design) or Phase 3 (planning)
 - User wants to explore what is worth building
 
 **Skip when:** An approved requirements doc (`docs/brainstorms/*-requirements.md`) already exists for this work item.
+
+## Quick Reference
+
+| Situation | Route |
+|---|---|
+| 没方向 | Route A |
+| 有方向但不确定值不值得 | Route B |
+| 多面向/跨切面需求 | Route C |
+| 单点小范围需求 | Route D |
+| 高风险需求 | `document-review` mandatory |
+
+## Common Mistakes
+
+- 把 brainstorm handoff 菜单当 Phase 1 完成
+- mandatory review 命中却只做 opt-in
+- 需求未批准就进入 Phase 2/3
+- 有现成 wiki 知识却不先注入上下文
 
 ## Scene Detection
 
@@ -72,20 +89,20 @@ Route D stays opt-in only when none of these signals apply.
 ```
 User Input
   |
-  +-- [No direction] -------> Route A: ideate-engine -> brainstorm-engine
+  +-- [No direction] -------> Route A: ce-ideate -> ce-brainstorm
   |   "give me ideas"
   |   "what should I improve"
   |
-  +-- [Has direction,  -----> Route B: office-hours-protocol -> brainstorm-engine
+  +-- [Has direction,  -----> Route B: office-hours -> ce-brainstorm
   |    uncertain value]
   |   "is this worth building"
   |   "validate my idea"
   |
-  +-- [Has direction,  -----> Route C: brainstorm-engine (Standard/Deep)
+  +-- [Has direction,  -----> Route C: ce-brainstorm (Standard/Deep)
   |    multi-faceted]            内部 grilling 引擎: grill-with-docs
   |   "add user auth with OAuth and RBAC"
   |
-  +-- [Has direction,  -----> Route D: brainstorm-engine (Lightweight)
+  +-- [Has direction,  -----> Route D: ce-brainstorm (Lightweight)
       clear & small]
       "add a logout button"
 ```
@@ -112,9 +129,9 @@ All routes converge to the brainstorm protocol as the single exit.
 
 2. **Execute the detected route**
 
-   **Route A**: Execute the ideation protocol from `references/ideate-engine.md` -> user selects direction -> feed into brainstorm protocol
-   **Route B**: Execute the office hours protocol from `references/office-hours-protocol.md` -> validated direction -> feed into brainstorm protocol
-   **Route C/D**: Execute the brainstorm protocol defined in `references/brainstorm-engine.md` directly (scope auto-assessed internally)
+   **Route A**: Execute `ce-ideate` using `references/ideate-engine.md` -> user selects direction -> feed into `ce-brainstorm`
+   **Route B**: Execute `office-hours` using `references/office-hours-protocol.md` -> validated direction -> feed into `ce-brainstorm`
+   **Route C/D**: Execute `ce-brainstorm` using `references/brainstorm-engine.md` directly (scope auto-assessed internally)
 
 3. **REVIEW GATE: document review（条件强制）**
    - Mandatory signals 命中时：立即执行 `references/doc-review-protocol.md` 中的文档审查协议，不得只在 handoff 菜单里提供 opt-in。

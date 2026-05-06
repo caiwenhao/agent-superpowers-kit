@@ -26,6 +26,21 @@ description: "Use to review skill execution quality when there are user correcti
 - Phase 5 已通过、准备 `dev:ship`，但本次 diff 修改了 skill / workflow / supervise 相关文件
 - Phase 5 已通过、准备 `dev:ship`，且本 session 出现用户打断、回滚、重复返工或 L1 iron law 事件
 
+## Quick Reference
+
+| Scope | Output |
+|---|---|
+| `project` | `docs/supervise/aggregated/<date>.md` |
+| `global` | `~/.claude/skill-feedback/aggregated-<date>.md` |
+| Phase 5.5 强制自省 | 脚本缺失即 hard blocker |
+
+## Common Mistakes
+
+- 把 `dev-supervise` 当成会自动 patch skill 的工具
+- 在 Phase 5.5 required 场景下忽略脚本缺失
+- 扫描完报告后不回到 Phase 4/5 修 skill
+- 把它塞进 `dev-flow` 常规串行 phase
+
 ## Parameters
 
 - `--since <duration>`: 回溯时间窗口，默认 `14d`（支持 `7d`, `24h`, `30d`）
@@ -42,8 +57,9 @@ description: "Use to review skill execution quality when there are user correcti
    REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || pwd)"
    SCRIPT="$REPO_ROOT/scripts/supervise/scan_history.py"
    if [ ! -f "$SCRIPT" ]; then
-     echo "⚠️  scripts/supervise/scan_history.py 未找到（跑 /dev:doctor 确认仓库完整性）"
-     exit 0
+     echo "❌ scripts/supervise/scan_history.py 未找到（跑 /dev:doctor 确认仓库完整性）"
+     echo "若本次调用来自 Phase 5.5 强制自省，这是 hard blocker；只有用户记录化 override 才能继续 ship。"
+     exit 2
    fi
    python3 "$SCRIPT" --since <duration> --scope <scope>
    ```

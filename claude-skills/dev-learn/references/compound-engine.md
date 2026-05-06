@@ -28,13 +28,10 @@ Dispatch in parallel (background), then session historian in foreground:
 
 ### 1. Context Analyzer
 - Extract conversation history
-- Read `references/schema.yaml` for enum validation and track classification
-- Determine track (bug vs knowledge) from problem_type
-- Read `references/yaml-schema.md` for category mapping
+- Determine track (bug vs knowledge) from problem_type using the inline tables below
 - Return: YAML frontmatter skeleton, category directory path, suggested filename
 
 ### 2. Solution Extractor
-- Read schema for track classification
 - Adapt output structure based on track
 - Bug track: Problem, Symptoms, What Didn't Work, Solution, Why This Works, Prevention
 - Knowledge track: Context, Guidance, Why This Matters, When to Apply, Examples
@@ -62,11 +59,11 @@ Dispatch in parallel (background), then session historian in foreground:
 1. Collect all Phase 1 results
 2. Check overlap assessment — update existing doc if High overlap
 3. Incorporate session history findings
-4. Assemble markdown from `assets/resolution-template.md`
-5. Validate YAML frontmatter against schema
+4. Assemble markdown from the template in the Output Artifact Structure section below
+5. Validate YAML frontmatter against the inline structure and required keys
 6. Create directory: `mkdir -p docs/solutions/[category]/`
 7. Write file
-8. Run `python3 scripts/validate-frontmatter.py <path>` until exit 0
+8. Run a frontmatter structure check or equivalent repo-available validator until exit 0
 
 ## Discoverability Check
 

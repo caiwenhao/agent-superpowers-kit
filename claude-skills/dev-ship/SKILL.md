@@ -1,11 +1,11 @@
 ---
 name: dev-ship
-description: "Use when Phase 5 has passed and code is ready to deliver. Detects project type and upstream quality to auto-select lightweight or full delivery path. Both end with land-and-deploy and automatic current worktree cleanup after merge."
+description: "Use when code has passed verification and the user explicitly wants to enter delivery, merge, push, PR, or release work."
 ---
 
 <SUPERVISE-CHECK>
 执行前自检（Codex 环境必读，Claude Code 环境由 L1 hook 覆盖）：
-1. 铁律 6（工作区）：运行 `git rev-parse --abbrev-ref HEAD`。若在 main/master 且不在 `.worktrees/` 子路径 → STOP，创建 worktree。
+1. 铁律 6（工作区）：运行 `git rev-parse --abbrev-ref HEAD` 和 `git rev-parse --show-toplevel`。若在 main/master 或不在 `<repo>/.worktrees/<task-name>/` → STOP，创建 worktree。
 2. 铁律 7（提交触发）：本 phase 豁免 — `/dev:ship` 是唯一允许 commit/push/PR 的阶段。
 3. 铁律 4（证据先行）：声称"完成/通过"前必须有测试命令的实际输出作为证据。
 4. 合并后收尾：代码确认合入 main 后，自动删除当前任务 worktree；不得让 `.worktrees/` 下的临时工作区长期滞留。
@@ -16,11 +16,11 @@ description: "Use when Phase 5 has passed and code is ready to deliver. Detects 
 ## 通用规则
 
 1. **始终用中文与用户交流。** 所有状态报告、GATE 提示、路由宣告均使用中文。
-2. **工作区前置（强制）。** 执行 `git rev-parse --abbrev-ref HEAD` 检查当前分支。若在 main/master 或未进入任务专属 worktree，STOP 并要求用户先创建/切换到 feature branch；禁止在主分支直接 commit/push。
-3. **提交由用户显式触发。** 前置阶段（Phase 1-5）绝不主动 commit/push/PR。本阶段（Phase 6）是**唯一**可以 commit/push/创建 PR 的阶段，且要求用户已显式调用 `/dev:ship` 或明确说"提交/commit/push/PR/上线"。这类指令一旦给出，就视为**对所选交付路径的整体授权**；不要把授权拆成 commit / push / merge / deploy 多次重复确认。
+2. **工作区前置（强制）。** 执行 `git rev-parse --abbrev-ref HEAD` 和 `git rev-parse --show-toplevel` 检查当前分支与 worktree。若在 main/master 或不在 `<repo>/.worktrees/<task-name>/`，STOP 并要求用户先创建/切换到任务专属 worktree；禁止在主分支直接 commit/push。
+3. **提交由用户显式触发。** 前置阶段（Phase 1-5）绝不主动 commit/push/PR。本阶段（Phase 6）是**唯一**可以 commit/push/创建 PR 的阶段，且要求用户已显式调用 `/dev:ship` 或明确说"提交/commit/push/PR/上线/deploy/合并到 main"。`/dev:ship` 只授权进入交付流程，不等于默认授权写 main。
 4. **Review 多轮循环。** Path C 中 `gstack-ship` 的 pre-landing review 和 adversarial review 执行多轮循环。
-5. **合并后自动删除当前工作区。** 一旦代码已合入 main（Path A 成功 push main，Path B/C 确认 merge），`dev-ship` 自动删除当前任务 worktree 并清理本地 feature branch。Merge-readiness GATE 必须提前展示将删除的 worktree 路径；合并成功后不再二次确认。
-6. **确认收敛到 phase 级。** 只有以下情况才再次 GATE：`(a)` 路径存在多个有效选择且无法安全自动判定；`(b)` merge-readiness / deploy 报告出现 blocker、风险取舍或缺少关键信息；`(c)` 用户明确要求逐步确认。除此之外，按已选路径直接执行到底。
+5. **合并后自动删除当前工作区。** 一旦代码已合入 main（Path A 在用户明确授权下成功 push main，Path B/C 确认 merge），`dev-ship` 自动删除当前任务 worktree 并清理本地 feature branch。Merge-readiness GATE 必须提前展示将删除的 worktree 路径；合并成功后不再二次确认。
+6. **确认收敛到 phase 级。** 只有以下情况才再次 GATE：`(a)` 路径存在多个有效选择且无法安全自动判定；`(b)` merge-readiness / deploy 报告出现 blocker、风险取舍或缺少关键信息；`(c)` 用户明确要求逐步确认。`mode:auto` 不是 ship 授权。除此之外，按已选路径直接执行到底。
 
 ## Overview
 
@@ -35,6 +35,22 @@ Position in workflow: Phase 5.5 (pre-ship knowledge/supervision decision) -> **P
 
 **Never skip Phase 6.**
 
+## Quick Reference
+
+| User intent | Path |
+|---|---|
+| 明确要求合并/push main | Path A |
+| 明确要求创建 PR | Path B |
+| 明确要求 release/bump/deploy | Path C |
+| 只说 `/dev:ship` / `ship it` | 进入交付流程并 GATE 选路径；不默认写 main |
+
+## Common Mistakes
+
+- 把 `/dev:ship` 或 `mode:auto` 当成 Path A 授权
+- 在没有当前 diff PASS 证据时交付
+- 在主 checkout 或非 `.worktrees/` 路径上执行交付
+- merge 后清理 worktree 前不验证删除目标
+
 ## Scene Detection
 
 **Signal 0: 主干同步（强制前置）**
@@ -45,12 +61,13 @@ Position in workflow: Phase 5.5 (pre-ship knowledge/supervision decision) -> **P
 - 用户明确说"release"/"版本发布"/"bump version"/"更新 CHANGELOG"/"自动部署"/"deploy to prod" -> Path C（发布路径）
 - 其他情况 -> check Signal 2
 
-**Signal 2: 用户是否显式要求 PR?**
+**Signal 2: 用户是否显式要求合并到 main?**
+- 用户明确说"合并到 main"/"push main"/"squash 到 main" -> Path A (squash 合并回 main)
 - 用户说"创建 PR"/"open PR"/"pull request" -> Path B (PR 路径)
-- 其他情况 -> Path A (squash 合并回 main，默认)
+- 其他情况 -> GATE 选择 Path B (推荐) / Path A / Path C；不得静默写 main
 
 **Signal 3: What upstream quality was already applied?**
-- Phase 4/5 review evidence exists (check `.context/compound-engineering/ce-review/` for recent run) -> upstream quality confirmed
+- Phase 4/5 review evidence exists for current HEAD/tree/diff (check `.context/compound-engineering/ce-review/` or equivalent current-diff evidence) -> upstream quality confirmed
 - No review evidence -> STOP，先回 `/dev:verify`
 
 **Signal 4: PR feedback pending?**
@@ -65,27 +82,27 @@ Position in workflow: Phase 5.5 (pre-ship knowledge/supervision decision) -> **P
 ```
 验证通过且完成 Phase 5.5 交付前判断的代码
   |
-  +-- [默认] -----------------------------------------> Path A: Squash 合并回 main
+  +-- [用户显式要求合并/push main] --------------------> Path A: Squash 合并回 main
   |   squash merge + 中文 commit message，保持主干干净 -> 自动删除当前 worktree
   |
   +-- [用户显式要求 PR] ------------------------------> Path B: PR 路径
-  |   commit-push-pr protocol -> land-deploy protocol -> 自动删除当前 worktree
+  |   commit-push-pr protocol -> gstack-land-and-deploy -> 自动删除当前 worktree
   |
   +-- [用户显式要求 release / bump / deploy] ---------> Path C: gstack 完整发布
-      gstack-ship -> gstack-document-release -> land-deploy protocol -> 自动删除当前 worktree
+      gstack-ship -> gstack-document-release -> gstack-land-and-deploy -> 自动删除当前 worktree
 ```
 
 ### Pre-delivery (auto-detected)
 
 ```
-  +-- [PR has unresolved threads] -> resolve-pr-feedback first
+  +-- [PR has unresolved threads] -> pr-comment-resolver first
   +-- [Diff has UI files] ---------> feature-video in parallel
 ```
 
 ## Workflow
 
 1. **Detect scene** and announce (中文):
-   - "默认路径 -- squash 合并回 main，一个干净的中文 commit。"
+   - "用户明确要求合并到 main -- squash 合并回 main，一个干净的中文 commit。"
    - "用户要求创建 PR -- 使用 PR 路径。"
    - "用户明确要求版本发布/自动部署 -- 使用完整发布流程含 CHANGELOG。"
    - "主干落后 8 个提交 -- 先 rebase 同步。"
@@ -97,7 +114,7 @@ Position in workflow: Phase 5.5 (pre-ship knowledge/supervision decision) -> **P
 
 3. **Execute detected path**
 
-   **Path A: Squash 合并回 main（默认）**
+   **Path A: Squash 合并回 main（仅用户明确要求）**
 
    主干保持线性、干净、每个 commit 对应一个完整功能。
 
@@ -131,6 +148,7 @@ Position in workflow: Phase 5.5 (pre-ship knowledge/supervision decision) -> **P
 
    执行规则：
    - 若用户已明确要求"提交并合并到 main"或等价表述，且路径唯一、commit message 无歧义、`task_worktree` 删除目标清晰，则直接执行。
+   - 若用户只说 `/dev:ship`、"ship it" 或 `mode:auto`，不得进入 Path A；先 GATE 选择 PR 路径或要求明确 main 授权。
    - 只有在 commit message 难以确定、目标分支/路径不明确、或主干同步后出现新 blocker 时才停下 GATE。
 
    **GATE(仅在需要时): 展示 squash diff 摘要、拟定的 commit message、将删除的 `task_worktree` 路径。**
@@ -148,7 +166,7 @@ Position in workflow: Phase 5.5 (pre-ship knowledge/supervision decision) -> **P
    - Logical commit splitting (file-level)
    - [+ feature-video in parallel if UI detected]
 
-   Then execute the land-deploy protocol from `references/land-deploy-protocol.md`:
+   Then execute the gstack-land-and-deploy protocol from `references/land-deploy-protocol.md`:
    - CI wait -> merge-readiness report -> merge -> deploy -> canary
 
    dev-ship cleanup:
@@ -171,7 +189,7 @@ Position in workflow: Phase 5.5 (pre-ship knowledge/supervision decision) -> **P
      - Auto-updates factual changes, asks on narrative changes
    ```
 
-   Then execute the land-deploy protocol from `references/land-deploy-protocol.md`:
+   Then execute the gstack-land-and-deploy protocol from `references/land-deploy-protocol.md`:
    - CI wait -> merge-readiness report -> merge -> deploy -> canary
 
    dev-ship cleanup:
@@ -207,7 +225,7 @@ Position in workflow: Phase 5.5 (pre-ship knowledge/supervision decision) -> **P
 | | Value |
 |---|---|
 | **Input** | Verified code diff (Phase 5 PASS) |
-| **Output** | Squash 合并到 main（默认）或 PR + 部署（显式要求时）;合并后自动删除当前任务 worktree |
+| **Output** | 用户明确 main 授权时 squash 合并到 main，或 PR + 部署；合并后自动删除当前任务 worktree |
 | **Next** | `/dev:learn` (Phase 7) |
 
 ## Iron Law
